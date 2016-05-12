@@ -1,5 +1,9 @@
-const Hello = (name = 'Jacky') => {
-  return `Hello ${name}!!`
+import { Wrapper as OSS } from 'ali-oss'
+
+class OSSSyncDir extends OSS {
+  constructor (props) {
+    super(props)
+  }
 }
 
-export default Hello
+export default OSSSyncDir
