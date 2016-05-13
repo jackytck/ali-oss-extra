@@ -1,7 +1,7 @@
 {
   "name": "ali-oss-extra",
   "version": "0.0.1",
-  "description": "Sync a local directory os Aliyun's OSS, similar to 'aws s3 sync'.",
+  "description": "Extend the official ali-oss with more convenient methods, such as listing, syncing a directory, put or delete a list of files etc.",
   "main": "dst/index.js",
   "scripts": {
     "build": "babel src --out-dir dst",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jackytck/ali-oss-sync-dir.git"
+    "url": "git+https://github.com/jackytck/ali-oss-extra.git"
   },
   "keywords": [
     "ali-oss"
@@ -20,9 +20,9 @@
   "author": "Jacky Tang",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jackytck/ali-oss-sync-dir/issues"
+    "url": "https://github.com/jackytck/ali-oss-extra/issues"
   },
-  "homepage": "https://github.com/jackytck/ali-oss-sync-dir#readme",
+  "homepage": "https://github.com/jackytck/ali-oss-extra#readme",
   "devDependencies": {
     "babel-cli": "^6.8.0",
     "babel-plugin-syntax-async-functions": "^6.8.0",
