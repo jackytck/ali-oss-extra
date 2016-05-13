@@ -1,12 +1,10 @@
 import { Wrapper as OSS } from 'ali-oss'
-import dotenv from 'dotenv'
 import { pick, find } from 'lodash'
 import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
 import path from 'path'
 import moment from 'moment'
-dotenv.config()
 
 class OSSSyncDir extends OSS {
   constructor (props) {
@@ -158,4 +156,5 @@ class OSSSyncDir extends OSS {
   }
 }
 
-export default OSSSyncDir
+// export default OSSSyncDir
+module.exports = OSSSyncDir

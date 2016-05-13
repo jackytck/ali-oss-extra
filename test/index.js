@@ -1,7 +1,7 @@
 require('dotenv').config()
-var OSSSyncDir = require('../dst').default
+var aliOSS = require('../dst')
 
-var client = new OSSSyncDir({
+var client = new aliOSS({
   accessKeyId: process.env.accessKeyId,
   accessKeySecret: process.env.accessKeySecret,
   bucket: process.env.bucket,
