@@ -1,5 +1,5 @@
 {
-  "name": "ali-oss-sync-dir",
+  "name": "ali-oss-extra",
   "version": "0.0.1",
   "description": "Sync a local directory os Aliyun's OSS, similar to 'aws s3 sync'.",
   "main": "dst/index.js",
