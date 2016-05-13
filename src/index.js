@@ -158,18 +158,4 @@ class OSSSyncDir extends OSS {
   }
 }
 
-async function test () {
-  const client = new OSSSyncDir({
-    accessKeyId: process.env.accessKeyId,
-    accessKeySecret: process.env.accessKeySecret,
-    bucket: process.env.bucket,
-    region: process.env.region,
-    timeout: process.env.timeout
-  })
-
-  // const result = await client.listDir(process.env.testDir2, ['name', 'lastModified'])
-  const result = await client.syncDir(`${process.env.dataWeb}/${process.env.testDir2}`, process.env.testDir2)
-}
-test()
-
 export default OSSSyncDir
