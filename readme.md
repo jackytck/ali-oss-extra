@@ -10,6 +10,7 @@ npm i -S ali-oss-extra
 * syncDir (directory, prefix, options = { delete: true })
 * putList (fileList, options = { thread: 20 })
 * deleteList (fileList, options = { thread: 20 })
+* setDownloadName (file, downloadName)
 
 ### Usage
 Use as a drop-in replacement of 'ali-oss':
