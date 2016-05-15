@@ -154,6 +154,18 @@ class OSSSyncDir extends OSS {
     }
     return allFiles
   }
+
+  /**
+   * Set the content-disposition header of a file.
+   */
+  async setDownloadName (file, downloadName) {
+    return await this.copy(file, file, {
+      headers: {
+        'Content-Type': 'binary/octet-stream',
+        'Content-Disposition': `attachment; filename="${downloadName}"`
+      }
+    })
+  }
 }
 
 // export default OSSSyncDir
