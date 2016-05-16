@@ -11,12 +11,21 @@ class OSSSyncDir extends OSS {
     super(props)
   }
 
-  putList (fileList, options = { thread: 20 }) {
+  putList (fileList, options = { thread: 20, bigFile: 1024 * 100, timeout: 10 * 1000 }) {
     return new Promise((resolve, reject) => {
       async function putFile (file, done) {
         try {
-          const result = await this.put(file.dst, file.src)
-          done(null, result)
+          if (file.size >= options.bigFile) {
+            // console.log('multipartUpload', file.dst, file.size)
+            const result = await this.multipartUpload(file.dst, file.src, {
+              partSize: 1024 * 100
+            })
+            done(null, result)
+          } else {
+            // console.log('put', file.dst, file.size)
+            const result = await this.put(file.dst, file.src, { timeout: options.timeout })
+            done(null, result)
+          }
         } catch (err) {
           done(err)
         }
@@ -53,8 +62,13 @@ class OSSSyncDir extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, options = { delete: true }) {
+  syncDir (directory, prefix, options = { delete: true }, meta = {}) {
     return new Promise((resolve, reject) => {
+      resolve = meta.resolve || resolve
+      reject = meta.reject || reject
+      const tried = (meta.tried || 0) + 1
+      console.log(`trying the ${tried} times...`)
+
       let putResults = []
       let deleteResults = []
 
@@ -65,30 +79,49 @@ class OSSSyncDir extends OSS {
       }
       // b. construct list of local files
       const dirname = path.dirname(directory)
-      let localFiles = []
+      let localFiles = new Map()
       const walker = walk.walk(directory)
       walker.on('file', (root, stat, next) => {
         const dst = `${prefix}${root.substr(directory.length)}/${stat.name}`
         const src = `${root}/${stat.name}`
-        localFiles.push({
+        localFiles.set(dst, {
           dst,
           src,
-          mtime: stat.mtime.toISOString()
+          mtime: stat.mtime.toISOString(),
+          size: stat.size
         })
+        // localFiles.push({
+        //   dst,
+        //   src,
+        //   mtime: stat.mtime.toISOString(),
+        //   size: stat.size
+        // })
         next()
       })
 
       walker.on('end', async () => {
-        console.log('local:', localFiles.length)
+        console.log('local:', localFiles.size)
 
         // 2. Check exiting files on OSS
-        const cloudFiles = await this.listDir(prefix, ['name', 'lastModified'])
-        console.log('oss:', cloudFiles.length)
+        let cloudFiles = new Map()
+        try {
+          const cloudFileList = await this.listDir(prefix, ['name', 'lastModified'])
+          cloudFileList.forEach(f => cloudFiles.set(f.name, f))
+          console.log('oss:', cloudFiles.size)
+        } catch (err) {
+          // catch the ResponseTimeoutError, and re-try
+          console.log('ResponseTimeoutError: listDir', 're-trying...')
+          if (err && err.name === 'ResponseTimeoutError') {
+            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+          } else {
+            return reject(err)
+          }
+        }
 
         // 3. Construct a list of files to upload
         let uploadFiles = []
-        localFiles.forEach(f => {
-          const existed = find(cloudFiles, { name: f.dst })
+        for (let f of localFiles.values()) {
+          const existed = cloudFiles.get(f.dst)
           if (existed) {
             if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
               uploadFiles.push(f)
@@ -96,27 +129,63 @@ class OSSSyncDir extends OSS {
           } else {
             uploadFiles.push(f)
           }
-        })
+        }
+        // localFiles.forEach(f => {
+        //   const existed = find(cloudFiles, { name: f.dst })
+        //   if (existed) {
+        //     if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
+        //       uploadFiles.push(f)
+        //     }
+        //   } else {
+        //     uploadFiles.push(f)
+        //   }
+        // })
         console.log('upload:', uploadFiles.length)
 
         // 4. Put a list of files to OSS
-        putResults = await this.putList(uploadFiles)
-        console.log('done uploading')
+        try {
+          putResults = await this.putList(uploadFiles)
+          console.log('done uploading')
+        } catch (err) {
+          // catch the ResponseTimeoutError, and re-try
+          console.log('ResponseTimeoutError: putList', 're-trying...')
+          if (err && err.name === 'ResponseTimeoutError') {
+            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+          } else {
+            return reject(err)
+          }
+        }
 
         // 5. Construct a list of files to delete
         let deleteFiles = []
         if (options.delete) {
-          cloudFiles.forEach(f => {
-            const existed = find(localFiles, { dst: f.name })
+          for (let f of cloudFiles.values()) {
+            const existed = localFiles.get(f.name)
             if (!existed) {
               deleteFiles.push(f)
             }
-          })
+          }
+          // cloudFiles.forEach(f => {
+          //   const existed = find(localFiles, { dst: f.name })
+          //   if (!existed) {
+          //     deleteFiles.push(f)
+          //   }
+          // })
           console.log('delete:', deleteFiles.length)
 
           // 6. Delete a list of files from OSS
-          deleteResults = await this.deleteList(deleteFiles)
-          console.log('done deleting')
+          try {
+            deleteResults = await this.deleteList(deleteFiles)
+            console.log('done deleting')
+          } catch (err) {
+            // catch the ResponseTimeoutError, and re-try
+            console.log('ResponseTimeoutError: deleteList', 're-trying...')
+            if (err && err.name === 'ResponseTimeoutError') {
+              return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+            } else {
+              return reject(err)
+            }
+          }
         }
 
         resolve({
