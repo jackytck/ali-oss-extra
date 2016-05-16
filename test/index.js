@@ -11,15 +11,14 @@ var client = new aliOSS({
 
 console.log('Begin test...')
 
-// client.put('hello', new Buffer('world!'))
+// client.syncDir(`${process.env.dataWeb}/${process.env.testDir2}`, process.env.testDir2)
 //   .then(result => {
-//     console.log(result)
-//     console.log('End')
+//     console.log('Done syncDir')
 //   })
+//   .catch(console.error)
 
-// const result = await client.listDir(process.env.testDir2, ['name', 'lastModified'])
-client.syncDir(`${process.env.dataWeb}/${process.env.testDir1}`, process.env.testDir1)
+client.deleteDir(process.env.testDir2)
   .then(result => {
-    // console.log(result)
+    console.log(result)
   })
   .catch(console.error)

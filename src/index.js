@@ -225,6 +225,40 @@ class OSSSyncDir extends OSS {
   }
 
   /**
+   * Delete a directory on OSS recursively.
+   */
+  deleteDir (prefix) {
+    return new Promise(async (resolve, reject) => {
+      const objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
+      let results = []
+      let cargo = Async.cargo(async (tasks, done) => {
+        try {
+          console.log(`deleting ${tasks.length} files...`)
+          const data = await this.deleteMulti(tasks)
+          results = [...results, ...data.deleted]
+          done(null, data)
+        } catch (err) {
+          done(err)
+        }
+      }, 1000)
+
+      cargo.push(objects, (err, data) => {
+        if (err) {
+          return reject(err)
+        }
+      })
+
+      cargo.drain = (err, data) => {
+        if (err) {
+          return reject(err)
+        }
+        console.log(`Finished deleting ${prefix}`)
+        resolve(results)
+      }
+    })
+  }
+
+  /**
    * Set the content-disposition header of a file.
    */
   async setDownloadName (file, downloadName) {
