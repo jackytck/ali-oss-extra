@@ -111,7 +111,7 @@ class OSSSyncDir extends OSS {
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           console.log('ResponseTimeoutError: listDir', 're-trying...')
-          if (err && err.name === 'ResponseTimeoutError') {
+          if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
           } else {
             return reject(err)
@@ -149,7 +149,7 @@ class OSSSyncDir extends OSS {
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           console.log('ResponseTimeoutError: putList', 're-trying...')
-          if (err && err.name === 'ResponseTimeoutError') {
+          if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
           } else {
             return reject(err)
@@ -180,7 +180,7 @@ class OSSSyncDir extends OSS {
           } catch (err) {
             // catch the ResponseTimeoutError, and re-try
             console.log('ResponseTimeoutError: deleteList', 're-trying...')
-            if (err && err.name === 'ResponseTimeoutError') {
+            if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
               return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
             } else {
               return reject(err)
@@ -227,9 +227,25 @@ class OSSSyncDir extends OSS {
   /**
    * Delete a directory on OSS recursively.
    */
-  deleteDir (prefix) {
+  deleteDir (prefix, meta = {}) {
     return new Promise(async (resolve, reject) => {
-      const objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
+      resolve = meta.resolve || resolve
+      reject = meta.reject || reject
+      const tried = (meta.tried || 0) + 1
+      console.log(`trying the ${tried} times...`)
+
+      let objects = []
+      try {
+        objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
+      }
+      catch (err) {
+        console.log('listDIr timeout...')
+        if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
+          return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
+        } else {
+          return reject(err)
+        }
+      }
       let results = []
       let cargo = Async.cargo(async (tasks, done) => {
         try {
@@ -238,7 +254,12 @@ class OSSSyncDir extends OSS {
           results = [...results, ...data.deleted]
           done(null, data)
         } catch (err) {
-          done(err)
+          console.log('deleteMulti timeout...')
+          if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
+            return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
+          } else {
+            return reject(err)
+          }
         }
       }, 1000)
 
