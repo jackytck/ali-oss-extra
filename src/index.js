@@ -16,13 +16,11 @@ class OSSSyncDir extends OSS {
       async function putFile (file, done) {
         try {
           if (file.size >= options.bigFile) {
-            // console.log('multipartUpload', file.dst, file.size)
             const result = await this.multipartUpload(file.dst, file.src, {
               partSize: 1024 * 100
             })
             done(null, result)
           } else {
-            // console.log('put', file.dst, file.size)
             const result = await this.put(file.dst, file.src, { timeout: options.timeout })
             done(null, result)
           }
@@ -62,12 +60,16 @@ class OSSSyncDir extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, options = { delete: true }, meta = {}) {
+  syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = {}) {
     return new Promise((resolve, reject) => {
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
+      const { retryLimit } = options
       console.log(`trying the ${tried} times...`)
+      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
+        return reject(new Error(`Retry limit exceeded!`))
+      }
 
       let putResults = []
       let deleteResults = []
@@ -90,12 +92,6 @@ class OSSSyncDir extends OSS {
           mtime: stat.mtime.toISOString(),
           size: stat.size
         })
-        // localFiles.push({
-        //   dst,
-        //   src,
-        //   mtime: stat.mtime.toISOString(),
-        //   size: stat.size
-        // })
         next()
       })
 
@@ -130,16 +126,6 @@ class OSSSyncDir extends OSS {
             uploadFiles.push(f)
           }
         }
-        // localFiles.forEach(f => {
-        //   const existed = find(cloudFiles, { name: f.dst })
-        //   if (existed) {
-        //     if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
-        //       uploadFiles.push(f)
-        //     }
-        //   } else {
-        //     uploadFiles.push(f)
-        //   }
-        // })
         console.log('upload:', uploadFiles.length)
 
         // 4. Put a list of files to OSS
@@ -165,12 +151,6 @@ class OSSSyncDir extends OSS {
               deleteFiles.push(f)
             }
           }
-          // cloudFiles.forEach(f => {
-          //   const existed = find(localFiles, { dst: f.name })
-          //   if (!existed) {
-          //     deleteFiles.push(f)
-          //   }
-          // })
           console.log('delete:', deleteFiles.length)
 
           // 6. Delete a list of files from OSS
@@ -227,12 +207,16 @@ class OSSSyncDir extends OSS {
   /**
    * Delete a directory on OSS recursively.
    */
-  deleteDir (prefix, meta = {}) {
+  deleteDir (prefix, meta = { retryLimit: null }) {
     return new Promise(async (resolve, reject) => {
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
+      const { retryLimit } = options
       console.log(`trying the ${tried} times...`)
+      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
+        return reject(new Error(`Retry limit exceeded!`))
+      }
 
       let objects = []
       try {
