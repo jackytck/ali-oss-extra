@@ -1,16 +1,11 @@
 import { Wrapper as OSS } from 'ali-oss'
-import { pick, find } from 'lodash'
+import { pick } from 'lodash'
 import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
-import path from 'path'
 import moment from 'moment'
 
 class OSSSyncDir extends OSS {
-  constructor (props) {
-    super(props)
-  }
-
   putList (fileList, options = { thread: 20, bigFile: 1024 * 100, timeout: 10 * 1000 }) {
     return new Promise((resolve, reject) => {
       async function putFile (file, done) {
@@ -67,7 +62,7 @@ class OSSSyncDir extends OSS {
       const tried = (meta.tried || 0) + 1
       const { retryLimit } = options
       if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
-        return reject(new Error(`Retry limit exceeded!`))
+        return reject(new Error('Retry limit exceeded!'))
       }
 
       let putResults = []
@@ -79,7 +74,6 @@ class OSSSyncDir extends OSS {
         return reject(new Error(`Path ${directory} does not exist!`))
       }
       // b. construct list of local files
-      const dirname = path.dirname(directory)
       let localFiles = new Map()
       const walker = walk.walk(directory)
       walker.on('file', (root, stat, next) => {
@@ -203,14 +197,13 @@ class OSSSyncDir extends OSS {
       const tried = (meta.tried || 0) + 1
       const { retryLimit } = options
       if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
-        return reject(new Error(`Retry limit exceeded!`))
+        return reject(new Error('Retry limit exceeded!'))
       }
 
       let objects = []
       try {
         objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
-      }
-      catch (err) {
+      } catch (err) {
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
           return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
         } else {
