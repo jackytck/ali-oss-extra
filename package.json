@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "babel-runtime": "^6.6.1",
-    "ali-oss": "^4.4.2",
+    "ali-oss": "^4.4.3",
     "async": "^2.0.0-rc.4",
     "is-there": "^4.3.2",
     "lodash": "^4.12.0",
