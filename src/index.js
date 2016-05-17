@@ -66,7 +66,6 @@ class OSSSyncDir extends OSS {
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
       const { retryLimit } = options
-      console.log(`trying the ${tried} times...`)
       if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
         return reject(new Error(`Retry limit exceeded!`))
       }
@@ -96,17 +95,13 @@ class OSSSyncDir extends OSS {
       })
 
       walker.on('end', async () => {
-        console.log('local:', localFiles.size)
-
         // 2. Check exiting files on OSS
         let cloudFiles = new Map()
         try {
           const cloudFileList = await this.listDir(prefix, ['name', 'lastModified'])
           cloudFileList.forEach(f => cloudFiles.set(f.name, f))
-          console.log('oss:', cloudFiles.size)
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
-          console.log('ResponseTimeoutError: listDir', 're-trying...')
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
           } else {
@@ -126,15 +121,12 @@ class OSSSyncDir extends OSS {
             uploadFiles.push(f)
           }
         }
-        console.log('upload:', uploadFiles.length)
 
         // 4. Put a list of files to OSS
         try {
           putResults = await this.putList(uploadFiles)
-          console.log('done uploading')
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
-          console.log('ResponseTimeoutError: putList', 're-trying...')
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
           } else {
@@ -151,15 +143,12 @@ class OSSSyncDir extends OSS {
               deleteFiles.push(f)
             }
           }
-          console.log('delete:', deleteFiles.length)
 
           // 6. Delete a list of files from OSS
           try {
             deleteResults = await this.deleteList(deleteFiles)
-            console.log('done deleting')
           } catch (err) {
             // catch the ResponseTimeoutError, and re-try
-            console.log('ResponseTimeoutError: deleteList', 're-trying...')
             if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
               return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
             } else {
@@ -213,7 +202,6 @@ class OSSSyncDir extends OSS {
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
       const { retryLimit } = options
-      console.log(`trying the ${tried} times...`)
       if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
         return reject(new Error(`Retry limit exceeded!`))
       }
@@ -223,7 +211,6 @@ class OSSSyncDir extends OSS {
         objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
       }
       catch (err) {
-        console.log('listDIr timeout...')
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
           return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
         } else {
@@ -233,12 +220,10 @@ class OSSSyncDir extends OSS {
       let results = []
       let cargo = Async.cargo(async (tasks, done) => {
         try {
-          console.log(`deleting ${tasks.length} files...`)
           const data = await this.deleteMulti(tasks)
           results = [...results, ...data.deleted]
           done(null, data)
         } catch (err) {
-          console.log('deleteMulti timeout...')
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
           } else {
@@ -257,7 +242,6 @@ class OSSSyncDir extends OSS {
         if (err) {
           return reject(err)
         }
-        console.log(`Finished deleting ${prefix}`)
         resolve(results)
       }
     })

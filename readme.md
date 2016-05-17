@@ -7,8 +7,8 @@ npm i -S ali-oss-extra
 ### Extra methods
 
 * listDir (prefix, projection = [])
-* syncDir (directory, prefix, options = { delete: true }, meta = {})
-* deleteDir (prefix, meta = {})
+* syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = {})
+* deleteDir (prefix, meta = { retryLimit: null })
 * putList (fileList, options = { thread: 20 })
 * deleteList (fileList, options = { thread: 20 })
 * setDownloadName (file, downloadName)
