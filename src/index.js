@@ -196,7 +196,7 @@ class OSSSyncDir extends OSS {
   /**
    * Delete a directory on OSS recursively.
    */
-  deleteDir (prefix, meta = { retryLimit: null }) {
+  deleteDir (prefix, options = { retryLimit: null }, meta = {}) {
     return new Promise(async (resolve, reject) => {
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
