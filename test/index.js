@@ -1,8 +1,8 @@
 require('dotenv').config()
-var aliOSS = require('../dst')
+var AliOSS = require('../dst')
 var notifier = require('node-notifier')
 
-var client = new aliOSS({
+var client = new AliOSS({
   accessKeyId: process.env.accessKeyId,
   accessKeySecret: process.env.accessKeySecret,
   bucket: process.env.bucket,
@@ -10,30 +10,29 @@ var client = new aliOSS({
   timeout: process.env.timeout
 })
 
+function onError (err) {
+  console.error('Error', err)
+  notifier.notify({
+    title: 'ali-oss-extra',
+    message: 'Error!'
+  })
+}
+
+function onSuccess (name, result) {
+  console.log(`Done ${name}`)
+  // console.log(result)
+  notifier.notify({
+    title: 'ali-oss-extra',
+    message: `Done ${name}!`
+  })
+}
+
 console.log('Begin test...')
 
 client.syncDir(`${process.env.dataWeb2}/${process.env.testDir2}`, process.env.testDir2)
-  .then(result => {
-    console.log('done syncDir')
-    // console.log(result)
-    notifier.notify({
-      title: 'ali-oss-extra',
-      message: 'Done syncDir!'
-    })
-  })
-  .catch(err => {
-    console.error('Error', err)
-    notifier.notify({
-      title: 'ali-oss-extra',
-      message: 'Error!'
-    })
-  })
+  .then(onSuccess.bind(this, 'syncDir'))
+  .catch(onError)
 
-// client.deleteDir(process.env.hkust)
-//   .then(result => {
-//     console.log(`Deleted ${result.length} files`)
-//   })
-//   .catch(err => {
-//     console.error('error')
-//     console.error(err)
-//   })
+// client.deleteDir(process.env.testDir2)
+//   .then(onSuccess.bind(this, 'deleteDir'))
+//   .catch(onError)
