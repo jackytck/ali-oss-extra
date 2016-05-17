@@ -29,10 +29,10 @@ function onSuccess (name, result) {
 
 console.log('Begin test...')
 
-client.syncDir(`${process.env.dataWeb2}/${process.env.testDir2}`, process.env.testDir2)
+client.syncDir(`${process.env.dataWeb}/${process.env.testDir1}`, process.env.testDir1)
   .then(onSuccess.bind(this, 'syncDir'))
   .catch(onError)
 
-// client.deleteDir(process.env.testDir2)
+// client.deleteDir(process.env.austin)
 //   .then(onSuccess.bind(this, 'deleteDir'))
 //   .catch(onError)

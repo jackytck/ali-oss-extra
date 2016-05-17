@@ -6,20 +6,31 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSSyncDir extends OSS {
-  putList (fileList, options = { thread: 20, bigFile: 1024 * 100, timeout: 10 * 1000 }) {
+  putList (fileList, options = { thread: 20, bigFile: 1024 * 100, timeout: 10 * 1000 }, meta = { checkPointMap: new Map() }) {
+    let { checkPointMap } = meta
     return new Promise((resolve, reject) => {
       async function putFile (file, done) {
         try {
           if (file.size >= options.bigFile) {
-            const result = await this.multipartUpload(file.dst, file.src, {
-              partSize: 1024 * 100
-            })
+            let multiOptions = {
+              progress: function * (_, checkPoint) {
+                checkPointMap.set(file.dst, checkPoint)
+              }
+            }
+            if (checkPointMap.has(file.dst)) {
+              options.checkpoint = checkPointMap.get(file.dst)
+            } else {
+              options.partSize = 1024 * 100
+            }
+            const result = await this.multipartUpload(file.dst, file.src, multiOptions)
+            checkPointMap.delete(file.dst)
             done(null, result)
           } else {
             const result = await this.put(file.dst, file.src, { timeout: options.timeout })
             done(null, result)
           }
         } catch (err) {
+          err.checkPointMap = checkPointMap
           done(err)
         }
       }
@@ -55,12 +66,13 @@ class OSSSyncDir extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = {}) {
+  syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() }) {
     return new Promise((resolve, reject) => {
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
       const { retryLimit } = options
+      let { checkPointMap } = meta
       if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
         return reject(new Error('Retry limit exceeded!'))
       }
@@ -97,7 +109,7 @@ class OSSSyncDir extends OSS {
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
-            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap }), 3000)
           } else {
             return reject(err)
           }
@@ -118,11 +130,11 @@ class OSSSyncDir extends OSS {
 
         // 4. Put a list of files to OSS
         try {
-          putResults = await this.putList(uploadFiles)
+          putResults = await this.putList(uploadFiles, undefined, { checkPointMap })
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
-            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: err.checkPointMap }), 3000)
           } else {
             return reject(err)
           }
@@ -144,7 +156,7 @@ class OSSSyncDir extends OSS {
           } catch (err) {
             // catch the ResponseTimeoutError, and re-try
             if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
-              return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried }), 3000)
+              return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap }), 3000)
             } else {
               return reject(err)
             }
