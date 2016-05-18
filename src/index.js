@@ -48,7 +48,7 @@ class OSSSyncDir extends OSS {
 
   deleteList (fileList, options = { thread: 20 }) {
     return new Promise((resolve, reject) => {
-      if (fileList.some(f => typeof (f) !== 'string')) {
+      if (fileList.some(f => typeof (f) !== 'object' || !f.name || typeof (f.name) !== 'string')) {
         return reject(new Error('deleteList: Incorrect input!'))
       }
       async function deleteFile (file, done) {
