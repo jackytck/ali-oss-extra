@@ -9,6 +9,9 @@ class OSSSyncDir extends OSS {
   putList (fileList, options = { thread: 20, bigFile: 1024 * 100, timeout: 10 * 1000 }, meta = { checkPointMap: new Map() }) {
     let { checkPointMap } = meta
     return new Promise((resolve, reject) => {
+      if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string')) {
+        return reject(new Error('putList: Incorrect input!'))
+      }
       async function putFile (file, done) {
         try {
           if (file.size >= options.bigFile) {
@@ -45,6 +48,9 @@ class OSSSyncDir extends OSS {
 
   deleteList (fileList, options = { thread: 20 }) {
     return new Promise((resolve, reject) => {
+      if (fileList.some(f => typeof (f) !== 'string')) {
+        return reject(new Error('deleteList: Incorrect input!'))
+      }
       async function deleteFile (file, done) {
         try {
           const result = await this.delete(file.name)
@@ -68,6 +74,9 @@ class OSSSyncDir extends OSS {
    */
   syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() }) {
     return new Promise((resolve, reject) => {
+      if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
+        return reject(new Error('syncDir: Incorrect input!'))
+      }
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
@@ -176,6 +185,9 @@ class OSSSyncDir extends OSS {
    * Return [] if not found.
    */
   async listDir (prefix, projection = []) {
+    if (typeof (prefix) !== 'string') {
+      throw new Error('listDir: Incorrect input!')
+    }
     const query = {
       prefix,
       'max-keys': 1000
@@ -204,6 +216,9 @@ class OSSSyncDir extends OSS {
    */
   deleteDir (prefix, options = { retryLimit: null }, meta = {}) {
     return new Promise(async (resolve, reject) => {
+      if (typeof (prefix) !== 'string') {
+        return reject(new Error('deleteDir: Incorrect input!'))
+      }
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
       const tried = (meta.tried || 0) + 1
@@ -256,6 +271,9 @@ class OSSSyncDir extends OSS {
    * Set the content-disposition header of a file.
    */
   async setDownloadName (file, downloadName) {
+    if (typeof (file) !== 'string' || typeof (downloadName) !== 'string') {
+      throw new Error('setDownloadName: Incorrect input!')
+    }
     return await this.copy(file, file, {
       headers: {
         'Content-Type': 'binary/octet-stream',
