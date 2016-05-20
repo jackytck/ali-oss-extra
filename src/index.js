@@ -6,8 +6,9 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSSyncDir extends OSS {
-  putList (fileList, options = { thread: 20, bigFile: 1024 * 100, partSize: 1024 * 500, timeout: 10 * 1000 }, meta = { checkPointMap: new Map() }) {
+  putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512 }, meta = { checkPointMap: new Map() }) {
     let { checkPointMap } = meta
+    console.log(checkPointMap)
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -23,7 +24,7 @@ class OSSSyncDir extends OSS {
             if (checkPointMap.has(file.dst)) {
               multiOptions.checkpoint = checkPointMap.get(file.dst)
             } else {
-              multiOptions.partSize = options.partSize
+              multiOptions.partSize = Math.max(Math.ceil(file.size / options.ulimit), options.partSize)
             }
             const result = await this.multipartUpload(file.dst, file.src, multiOptions)
             checkPointMap.delete(file.dst)
@@ -143,6 +144,7 @@ class OSSSyncDir extends OSS {
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
+            console.log('timeout')
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: err.checkPointMap }), 3000)
           } else {
             return reject(err)
