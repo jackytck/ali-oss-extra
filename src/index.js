@@ -1,5 +1,5 @@
 import { Wrapper as OSS } from 'ali-oss'
-import { pick } from 'lodash'
+import { pick, cloneDeep } from 'lodash'
 import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
@@ -21,7 +21,7 @@ class OSSSyncDir extends OSS {
               }
             }
             if (checkPointMap.has(file.dst)) {
-              multiOptions.checkpoint = checkPointMap.get(file.dst)
+              multiOptions.checkpoint = cloneDeep(checkPointMap.get(file.dst))
             } else {
               multiOptions.partSize = Math.max(Math.ceil(file.size / options.ulimit), options.partSize)
             }
@@ -144,10 +144,6 @@ class OSSSyncDir extends OSS {
           // catch the ResponseTimeoutError, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
             return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: err.checkPointMap }), 3000)
-          } else if (err && err.name === 'InvalidPartOrderError') {
-            // bug from ali-oss that screws up the order?
-            console.error(err)
-            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: new Map() }), 3000)
           } else {
             return reject(err)
           }
