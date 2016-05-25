@@ -6,7 +6,7 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSSyncDir extends OSS {
-  putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512 }, meta = { checkPointMap: new Map() }) {
+  putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 60 * 1000, ulimit: 512 }, meta = { checkPointMap: new Map() }) {
     let { checkPointMap } = meta
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string')) {
