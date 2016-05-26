@@ -14,7 +14,7 @@ function onError (err) {
   console.error('Error', err)
   notifier.notify({
     title: 'ali-oss-extra',
-    message: 'Error!'
+    message: err.toString() || JSON.stringify(err)
   })
 }
 
@@ -28,8 +28,9 @@ function onSuccess (name, result) {
 }
 
 console.log('Begin test...')
+var project = process.env.testDir1
 
-client.syncDir(`${process.env.dataWeb}/${process.env.testDir1}`, process.env.testDir1)
+client.syncDir(`${process.env.dataWeb}/${project}`, project)
   .then(onSuccess.bind(this, 'syncDir'))
   .catch(onError)
 
