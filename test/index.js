@@ -30,7 +30,7 @@ function onSuccess (name, result) {
 console.log('Begin test...')
 var project = process.env.testDir1
 
-client.syncDir(`${process.env.dataWeb}/${project}`, project)
+client.syncDir(`${process.env.dataWeb}/${project}`, project, { verbose: true })
   .then(onSuccess.bind(this, 'syncDir'))
   .catch(onError)
 
