@@ -69,31 +69,15 @@ class OSSSyncDir extends OSS {
   }
 
   /**
-   * As in:
-   * s3 sync ${directory} s3://bucket/${prefix} --delete
+   * Get a map of local files.
    */
-  syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() }) {
+  _getLocalFilesMap (directory, prefix) {
     return new Promise((resolve, reject) => {
-      if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
-        return reject(new Error('syncDir: Incorrect input!'))
-      }
-      resolve = meta.resolve || resolve
-      reject = meta.reject || reject
-      const tried = (meta.tried || 0) + 1
-      const { retryLimit } = options
-      let { checkPointMap } = meta
-      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
-        return reject(new Error('Retry limit exceeded!'))
-      }
-
-      let putResults = []
-      let deleteResults = []
-
-      // 1. Prepare local files
       // a. check if directory exists
       if (!isThere(directory)) {
         return reject(new Error(`Path ${directory} does not exist!`))
       }
+
       // b. construct list of local files
       let localFiles = new Map()
       const walker = walk.walk(directory)
@@ -110,11 +94,114 @@ class OSSSyncDir extends OSS {
       })
 
       walker.on('end', async () => {
-        // 2. Check exiting files on OSS
-        let cloudFiles = new Map()
+        resolve(localFiles)
+      })
+    })
+  }
+
+  /**
+   * Get a map of cloud files.
+   */
+  _getCloudFilesMap (prefix, options = { retryLimit: null }, meta = {}) {
+    return new Promise(async (resolve, reject) => {
+      let cloudFiles = new Map()
+      const trial = (meta.trial || 0) + 1
+      try {
+        const cloudFileList = await this.listDir(prefix, ['name', 'lastModified'])
+        cloudFileList.forEach(f => cloudFiles.set(f.name, f))
+        resolve(cloudFiles)
+      } catch (err) {
+        // catch the ResponseTimeoutError, and re-try
+        if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
+          console.log('listDir timeout....')
+          let { retryLimit } = options
+          if (retryLimit && Number.isInteger(retryLimit)) {
+            if (trial < retryLimit) {
+              setTimeout(() => resolve(this._getCloudFilesMap(prefix, options, { trial })), 3000)
+            } else {
+              reject(new Error('Retry limit exceeded!'))
+            }
+          } else {
+            setTimeout(() => resolve(this._getCloudFilesMap(prefix)), 3000)
+          }
+        } else {
+          reject(err)
+        }
+      }
+    })
+  }
+
+  /**
+   * As in:
+   * s3 sync ${directory} s3://bucket/${prefix} --delete
+   */
+  syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map(), localFilesMap: new Map(), cloudFilesMap: new Map() }) {
+    return new Promise(async (resolve, reject) => {
+      if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
+        return reject(new Error('syncDir: Incorrect input!'))
+      }
+      resolve = meta.resolve || resolve
+      reject = meta.reject || reject
+      const tried = (meta.tried || 0) + 1
+      const { retryLimit } = options
+      let { checkPointMap, localFilesMap, cloudFilesMap } = meta
+      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
+        return reject(new Error('Retry limit exceeded!'))
+      }
+
+      let putResults = []
+      let deleteResults = []
+
+      // 1. Get local and cloud files
+      try {
+        localFilesMap = await this._getLocalFilesMap(directory, prefix)
+        console.log('localFilesMap', localFilesMap.size)
+        cloudFilesMap = await this._getCloudFilesMap(prefix, options)
+        console.log('cloudFilesMap', cloudFilesMap.size)
+      } catch (err) {
+        return reject(err)
+      }
+
+      // 2. Construct a list of files to upload
+      let uploadFiles = []
+      for (let f of localFilesMap.values()) {
+        const existed = cloudFilesMap.get(f.dst)
+        if (existed) {
+          if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
+            uploadFiles.push(f)
+          }
+        } else {
+          uploadFiles.push(f)
+        }
+      }
+      console.log('uploadFiles', uploadFiles.length)
+
+      // 3. Put a list of files to OSS
+      try {
+        putResults = await this.putList(uploadFiles, undefined, { checkPointMap })
+      } catch (err) {
+        // catch the ResponseTimeoutError, and re-try
+        if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
+          return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: err.checkPointMap }), 3000)
+        } else {
+          return reject(err)
+        }
+      }
+
+      // 4. Construct a list of files to delete
+      let deleteFiles = []
+      if (options.delete) {
+        for (let f of cloudFilesMap.values()) {
+          const existed = localFilesMap.get(f.name)
+          if (!existed) {
+            deleteFiles.push(f)
+          }
+        }
+        console.log('deleteFiles', deleteFiles.length)
+
+        // 5. Delete a list of files from OSS
         try {
-          const cloudFileList = await this.listDir(prefix, ['name', 'lastModified'])
-          cloudFileList.forEach(f => cloudFiles.set(f.name, f))
+          deleteResults = await this.deleteList(deleteFiles)
         } catch (err) {
           // catch the ResponseTimeoutError, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
@@ -123,59 +210,11 @@ class OSSSyncDir extends OSS {
             return reject(err)
           }
         }
+      }
 
-        // 3. Construct a list of files to upload
-        let uploadFiles = []
-        for (let f of localFiles.values()) {
-          const existed = cloudFiles.get(f.dst)
-          if (existed) {
-            if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
-              uploadFiles.push(f)
-            }
-          } else {
-            uploadFiles.push(f)
-          }
-        }
-
-        // 4. Put a list of files to OSS
-        try {
-          putResults = await this.putList(uploadFiles, undefined, { checkPointMap })
-        } catch (err) {
-          // catch the ResponseTimeoutError, and re-try
-          if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
-            return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap: err.checkPointMap }), 3000)
-          } else {
-            return reject(err)
-          }
-        }
-
-        // 5. Construct a list of files to delete
-        let deleteFiles = []
-        if (options.delete) {
-          for (let f of cloudFiles.values()) {
-            const existed = localFiles.get(f.name)
-            if (!existed) {
-              deleteFiles.push(f)
-            }
-          }
-
-          // 6. Delete a list of files from OSS
-          try {
-            deleteResults = await this.deleteList(deleteFiles)
-          } catch (err) {
-            // catch the ResponseTimeoutError, and re-try
-            if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError') {
-              return setTimeout(() => this.syncDir(directory, prefix, options, { resolve, reject, tried, checkPointMap }), 3000)
-            } else {
-              return reject(err)
-            }
-          }
-        }
-
-        resolve({
-          put: putResults,
-          delete: deleteResults
-        })
+      resolve({
+        put: putResults,
+        delete: deleteResults
       })
     })
   }
