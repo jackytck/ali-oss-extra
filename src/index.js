@@ -1,12 +1,12 @@
 import { Wrapper as OSS } from 'ali-oss'
-import { pick, cloneDeep } from 'lodash'
+import { pick, cloneDeep, uniqBy } from 'lodash'
 import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSSyncDir extends OSS {
-  putList (fileList, { thread = 20, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 20, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -27,17 +27,19 @@ class OSSSyncDir extends OSS {
             const result = await this.multipartUpload(file.dst, file.src, multiOptions)
             checkPointMap.delete(file.dst)
             uploadFilesMap.delete(file.dst)
+            putResults.push(result)
             if (verbose) {
               console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
             }
-            done(null, result)
+            done()
           } else {
             const result = await this.put(file.dst, file.src, { timeout: timeout })
             uploadFilesMap.delete(file.dst)
+            putResults.push(result)
             if (verbose) {
               console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
             }
-            done(null, result)
+            done()
           }
         } catch (err) {
           err.checkPointMap = checkPointMap
@@ -48,12 +50,12 @@ class OSSSyncDir extends OSS {
         if (err) {
           return reject(err)
         }
-        resolve(results)
+        resolve(putResults)
       })
     })
   }
 
-  deleteList (fileList, { thread = 20, verbose = false } = {}, { deleteFilesMap = new Map() } = {}) {
+  deleteList (fileList, { thread = 20, verbose = false } = {}, { deleteResults = [], deleteFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.name || typeof (f.name) !== 'string')) {
         return reject(new Error('deleteList: Incorrect input!'))
@@ -62,10 +64,11 @@ class OSSSyncDir extends OSS {
         try {
           const result = await this.delete(file.name)
           deleteFilesMap.delete(file.name)
+          deleteResults.push(result)
           if (verbose) {
             console.log(`Deleted: ${file.name}, Remaining: ${deleteFilesMap.size}`)
           }
-          done(null, result)
+          done()
         } catch (err) {
           done(err)
         }
@@ -74,7 +77,7 @@ class OSSSyncDir extends OSS {
         if (err) {
           return reject(err)
         }
-        resolve(results)
+        resolve(deleteResults)
       })
     })
   }
@@ -145,22 +148,22 @@ class OSSSyncDir extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, { remove = true, retryLimit = null, verbose = false } = {}, meta = { retrying: false, checkPointMap: new Map(), uploadFilesMap: new Map(), deleteFilesMap: new Map() }) {
+  syncDir (directory, prefix, { remove = true, retryLimit = null, verbose = false } = {}, { retrying = false, lastResolve = null, lastReject = null, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
     const options = { remove, retryLimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))
       }
-      resolve = meta.resolve || resolve
-      reject = meta.reject || reject
-      const tried = (meta.tried || 0) + 1
-      let { retrying, checkPointMap, uploadFilesMap, deleteFilesMap } = meta
-      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
+      if (lastResolve) {
+        resolve = lastResolve
+      }
+      if (lastReject) {
+        reject = lastReject
+      }
+      if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
         return reject(new Error('Retry limit exceeded!'))
       }
 
-      let putResults = []
-      let deleteResults = []
       let localFilesMap = new Map()
       let cloudFilesMap = new Map()
 
@@ -205,7 +208,7 @@ class OSSSyncDir extends OSS {
         console.log(`Files to upload: ${uploadFilesMap.size}`)
       }
       try {
-        putResults = await this.putList([...uploadFilesMap.values()], { verbose }, { checkPointMap, uploadFilesMap })
+        await this.putList([...uploadFilesMap.values()], { verbose }, { putResults, checkPointMap, uploadFilesMap })
       } catch (err) {
         // catch the request or response or timeout errors, and re-try
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError' || err.name === 'NoSuchUploadError') {
@@ -215,7 +218,8 @@ class OSSSyncDir extends OSS {
           if (err.name === 'NoSuchUploadError') {
             err.checkPointMap.delete(err.params.object)
           }
-          return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, resolve, reject, tried, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
+          trial++
+          return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
         } else {
           return reject(err)
         }
@@ -227,14 +231,15 @@ class OSSSyncDir extends OSS {
         }
         // 5. Delete a list of files from OSS
         try {
-          deleteResults = await this.deleteList([...deleteFilesMap.values()], undefined, { deleteFilesMap })
+          await this.deleteList([...deleteFilesMap.values()], undefined, { deleteResults, deleteFilesMap })
         } catch (err) {
           // catch the request or response or timeout errors, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
             if (verbose) {
               console.log(`Delete ${err.name}, retrying...`)
             }
-            return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, resolve, reject, tried, checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
+            trial++
+            return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
           } else {
             return reject(err)
           }
@@ -242,8 +247,8 @@ class OSSSyncDir extends OSS {
       }
 
       resolve({
-        put: putResults,
-        delete: deleteResults
+        put: uniqBy(putResults, 'name'),
+        delete: uniqBy(deleteResults, 'res.requestUrls[0]')
       })
     })
   }

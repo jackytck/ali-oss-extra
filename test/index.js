@@ -21,7 +21,9 @@ function onError (err) {
 function onSuccess (name, result) {
   console.log(`Done ${name}`)
   console.log('Uploaded:', result.put.length)
+  // console.log('Uploaded:', result.put.map(f => f.name))
   console.log('Removed:', result.delete.length)
+  // console.log('Removed:', result.delete)
   notifier.notify({
     title: 'ali-oss-extra',
     message: `Done ${name}!`
