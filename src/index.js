@@ -5,7 +5,7 @@ import Async from 'async'
 import isThere from 'is-there'
 import moment from 'moment'
 
-class OSSSyncDir extends OSS {
+class OSSExtra extends OSS {
   putList (fileList, { thread = 20, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string')) {
@@ -355,5 +355,5 @@ class OSSSyncDir extends OSS {
   }
 }
 
-// export default OSSSyncDir
-module.exports = OSSSyncDir
+// export default OSSExtra
+module.exports = OSSExtra
