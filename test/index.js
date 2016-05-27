@@ -20,7 +20,8 @@ function onError (err) {
 
 function onSuccess (name, result) {
   console.log(`Done ${name}`)
-  // console.log(result)
+  console.log('Uploaded:', result.put.length)
+  console.log('Removed:', result.delete.length)
   notifier.notify({
     title: 'ali-oss-extra',
     message: `Done ${name}!`

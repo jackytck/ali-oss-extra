@@ -208,9 +208,12 @@ class OSSSyncDir extends OSS {
         putResults = await this.putList([...uploadFilesMap.values()], { verbose }, { checkPointMap, uploadFilesMap })
       } catch (err) {
         // catch the request or response or timeout errors, and re-try
-        if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
+        if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError' || err.name === 'NoSuchUploadError') {
           if (verbose) {
             console.log(`Upload ${err.name}, retrying...`)
+          }
+          if (err.name === 'NoSuchUploadError') {
+            err.checkPointMap.delete(err.params.object)
           }
           return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, resolve, reject, tried, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
         } else {
