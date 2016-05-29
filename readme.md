@@ -1,9 +1,12 @@
+[![NPM version][npm-image]][npm-url]
 [![build status][travis-image]][travis-url]
 [![codecov][codecov-image]][codecov-url]
 [![Codacy][codacy-image]][codacy-url]
 [![devDependency Status][david-image]][david-url]
 [![devDevDependency Status][david-image-dev]][david-url-dev]
 
+[npm-image]: https://img.shields.io/npm/v/ali-oss-extra.svg
+[npm-url]: https://npmjs.org/package/ali-oss-extra
 [travis-image]: https://travis-ci.org/jackytck/ali-oss-extra.svg?branch=master
 [travis-url]: https://travis-ci.org/jackytck/ali-oss-extra
 [codecov-image]: https://codecov.io/gh/jackytck/ali-oss-extra/branch/master/graph/badge.svg
