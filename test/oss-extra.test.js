@@ -10,6 +10,15 @@ chai.use(chaiThings)
 describe('Ali-OSS-Extra', () => {
   const store = new OSS(config.OSS)
 
+  it('initialize', done => {
+    const opts = store.options
+    opts.accessKeyId.should.be.a('string')
+    opts.accessKeySecret.should.be.a('string')
+    opts.bucket.should.be.a('string')
+    opts.region.should.be.a('string')
+    done()
+  })
+
   it('list top 10 buckets', async (done) => {
     const result = await store.listBuckets({ 'max-keys': 10 })
     result.should.have.property('buckets')
