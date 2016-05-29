@@ -355,5 +355,4 @@ class OSSExtra extends OSS {
   }
 }
 
-// export default OSSExtra
-module.exports = OSSExtra
+export default OSSExtra

@@ -5,8 +5,11 @@
   "main": "dst/index.js",
   "scripts": {
     "build": "babel src --out-dir dst",
-    "pretest": "npm run build",
-    "test": "standard && node test",
+    "pretest": "npm run style && npm run build",
+    "style": "standard -v src/*.js test/*.js",
+    "codecov": "codecov",
+    "test": "istanbul cover _mocha -- -R spec --compilers js:babel-core/register test/*.test.js",
+    "test:quick": "mocha --compilers js:babel-core/register test/*.test.js",
     "test:watch": "watch 'npm run test' src",
     "prepublish": "npm run build"
   },
@@ -15,7 +18,8 @@
     "url": "git+https://github.com/jackytck/ali-oss-extra.git"
   },
   "keywords": [
-    "ali-oss"
+    "ali-oss",
+    "aliyun"
   ],
   "author": "Jacky Tang",
   "license": "MIT",
@@ -28,13 +32,19 @@
   },
   "devDependencies": {
     "babel-cli": "^6.8.0",
+    "babel-core": "^6.9.0",
     "babel-eslint": "^6.0.4",
     "babel-plugin-syntax-async-functions": "^6.8.0",
     "babel-plugin-transform-runtime": "^6.8.0",
     "babel-polyfill": "^6.8.0",
     "babel-preset-es2015": "^6.6.0",
     "babel-preset-stage-0": "^6.5.0",
+    "chai": "^3.5.0",
+    "chai-things": "^0.2.0",
+    "codecov": "^1.0.1",
     "dotenv": "^2.0.0",
+    "istanbul": "1.0.0-alpha.2",
+    "mocha": "^2.5.3",
     "node-notifier": "^4.5.0",
     "standard": "^7.1.0",
     "watch": "^0.18.0"
