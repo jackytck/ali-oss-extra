@@ -1,12 +1,12 @@
 require('dotenv').config()
-var AliOSS = require('../dst')
+var AliOSS = require('../dst').default
 var notifier = require('node-notifier')
 
 var client = new AliOSS({
-  accessKeyId: process.env.accessKeyId,
-  accessKeySecret: process.env.accessKeySecret,
-  bucket: process.env.bucket,
-  region: process.env.region,
+  accessKeyId: process.env.ALI_SDK_OSS_ID,
+  accessKeySecret: process.env.ALI_SDK_OSS_SECRET,
+  bucket: process.env.ALI_SDK_OSS_BUCKET,
+  region: process.env.ALI_SDK_OSS_REGION,
   timeout: process.env.timeout
 })
 
