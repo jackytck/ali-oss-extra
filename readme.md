@@ -26,7 +26,7 @@ npm i -S ali-oss-extra
 
 ### Extra methods
 
-* listDir (prefix, projection = [])
+* [`listDir (prefix, projection = [])`](#listDir)
 * syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() })
 * deleteDir (prefix, meta = { retryLimit: null })
 * putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512}, meta = { checkPointMap: new Map() })
@@ -55,14 +55,14 @@ const result = await store.listBuckets({ 'max-keys': 10 })
 console.log(result);
 ```
 
-#### List directory
+#### listDir
 List all files under a prefix. **Not** limited to 1000.
 ```js
 // List all files in a prefix
 const result = await store.listDir('user_data')
 ```
 Return:
-```json
+```js
 [
   { name: 'user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
     url: 'http://my-bucket.oss-us-west-1.aliyuncs.com/user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
