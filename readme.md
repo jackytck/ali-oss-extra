@@ -26,9 +26,9 @@ npm i -S ali-oss-extra
 
 ### Extra methods
 
-* [`listDir (prefix, projection = [])`](#listdir)
-* syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() })
-* deleteDir (prefix, meta = { retryLimit: null })
+* [`listDir`](#listDir)
+* [`syncDir`](#syncDir)
+* [`deleteDir`](#deleteDir)
 * putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512}, meta = { checkPointMap: new Map() })
 * deleteList (fileList, options = { thread: 20 })
 * setDownloadName (file, downloadName)
@@ -72,8 +72,9 @@ Return:
    ...
 ```
 
-#### listDir
-List all files under a prefix. **Not** limited to 1000.
+<a name="listDir"></a>
+### listDir (prefix, projection = [])
+List all files under a prefix. **Not** limited to 1000 files.
 ```js
 // List all files in a prefix
 const result = await store.listDir('user_data')
@@ -97,6 +98,83 @@ Return:
     storageClass: 'Standard',
     owner: { id: '1400663040702136', displayName: '1400663040702136' } },
 ...]
+```
+
+<a name="syncDir"></a>
+### syncDir (directory, prefix, options)
+
+__Options__
+* `remove` - Remove file on OSS if it is not appeared in local directory
+* `retryLimit` - Number of times to retry after timeout
+* `verbose` - Print debug log
+
+Synchronize a local directory to OSS recursively. Support uploading directory with large number of small or big files.
+
+If a file of the same name exists and its last modified time is not older than the local one, then it will not be uploaded.
+```js
+const result = await store.syncDir('./localDir', 'a_dir')
+```
+Return:
+```js
+{
+  "put": [
+    {
+      "name": "a_dir/fileA1.txt",
+      "url": "http://my-bucket.oss-us-west-1.aliyuncs.com/a_dir/fileA1.txt",
+      "res": {
+        "status": 200,
+        "statusCode": 200,
+        "headers": {
+          "server": "AliyunOSS",
+          "date": "Mon, 30 May 2016 08:10:37 GMT",
+          "content-length": "0",
+          "connection": "keep-alive",
+          "x-oss-request-id": "574BF57D16FDA15402D9D84C",
+          "x-oss-bucket-storage-type": "standard",
+          "etag": "\"7EED2CD60D1E86FE16B0F7AB89C89D0E\"",
+          "x-oss-server-time": "4"
+        },
+        "size": 0,
+        "aborted": false,
+        "rt": 176,
+        "keepAliveSocket": true,
+        "data": {
+          "type": "Buffer",
+          "data": []
+        },
+        "requestUrls": [
+          "http://my-bucket.oss-us-west-1.aliyuncs.com/a_dir/fileA1.txt"
+        ]
+      }
+    },
+    ...
+  ],
+  "delete": []
+}
+```
+
+<a name="deleteDir"></a>
+### deleteDir (prefix, options)
+
+__Options__
+* `retryLimit` - Number of times to retry after timeout
+
+Delete a directory recursively. **Not** limited to 1000 files.
+```js
+const result = await store.deleteDir('a_dir')
+```
+Returns:
+```js
+[ 
+  'a_dir/b/c/d/fileD1.txt',
+  'a_dir/b/c/d/fileD2.txt',
+  'a_dir/b/c/d/fileD3.txt',
+  'a_dir/b/c/fileC1.txt',
+  'a_dir/b/c/fileC2.txt',
+  'a_dir/fileA1.txt',
+  'a_dir/fileA2.txt',
+  ...
+]
 ```
 
 ### License

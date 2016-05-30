@@ -3,6 +3,7 @@ import chai from 'chai'
 import OSS from '..'
 import config from './config'
 import chaiThings from 'chai-things'
+import fs from 'fs-extra'
 
 chai.should()
 chai.use(chaiThings)
@@ -57,5 +58,45 @@ describe('Ali-OSS-Extra', () => {
     result.should.all.have.property('size')
     result.should.all.not.have.property('storageClass')
     result.should.all.not.have.property('owner')
+  })
+
+  it('sync a directory', async () => {
+    fs.mkdirsSync('./a/b/c/d/')
+    fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
+    fs.writeFileSync('./a/fileA2.txt', 'fileA2 content')
+    fs.writeFileSync('./a/b/c/fileC1.txt', 'fileC1 content')
+    fs.writeFileSync('./a/b/c/fileC2.txt', 'fileC2 content')
+    fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
+    fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
+    fs.writeFileSync('./a/b/c/d/fileD3.txt', 'fileD3 content')
+    const result = await store.syncDir('./a', 'syncDirTest')
+
+    result.should.be.instanceof(Object)
+    result.should.have.property('put')
+    result.should.have.property('delete')
+    result.put.should.be.instanceof(Array)
+    result.put.length.should.equal(7)
+    result.put.should.all.have.property('name')
+    result.put.should.all.have.property('url')
+    result.put.should.all.have.property('res')
+
+    const fileD1 = result.put.filter(f => f.name === 'syncDirTest/b/c/d/fileD1.txt')
+    fileD1.length.should.equal(1)
+    fileD1[0].res.status.should.equal(200)
+
+    fs.removeSync('./a')
+  })
+
+  it('delete a directory', async () => {
+    const result = await store.deleteDir('syncDirTest')
+    result.should.be.instanceof(Array)
+    result.length.should.equal(7)
+    result.should.include('syncDirTest/b/c/d/fileD1.txt')
+  })
+
+  it('delete a non-existing directory without error', async () => {
+    const result = await store.deleteDir('syncDirTest')
+    result.should.be.instanceof(Array)
+    result.length.should.equal(0)
   })
 })

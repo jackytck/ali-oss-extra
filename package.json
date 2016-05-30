@@ -43,6 +43,7 @@
     "chai-things": "^0.2.0",
     "codecov": "^1.0.1",
     "dotenv": "^2.0.0",
+    "fs-extra": "^0.30.0",
     "istanbul": "1.0.0-alpha.2",
     "mocha": "^2.5.3",
     "node-notifier": "^4.5.0",
