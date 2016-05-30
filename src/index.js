@@ -184,7 +184,7 @@ class OSSExtra extends OSS {
         for (let f of localFilesMap.values()) {
           const existed = cloudFilesMap.get(f.dst)
           if (existed) {
-            if (moment(f.mtime).isAfter(moment(existed.lastModified))) {
+            if (moment(f.mtime).isAfter(moment(existed.lastModified).add(1, 's'))) {
               uploadFilesMap.set(f.dst, f)
             }
           } else {
@@ -231,7 +231,7 @@ class OSSExtra extends OSS {
         }
         // 5. Delete a list of files from OSS
         try {
-          await this.deleteList([...deleteFilesMap.values()], undefined, { deleteResults, deleteFilesMap })
+          await this.deleteList([...deleteFilesMap.values()], { verbose }, { deleteResults, deleteFilesMap })
         } catch (err) {
           // catch the request or response or timeout errors, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
