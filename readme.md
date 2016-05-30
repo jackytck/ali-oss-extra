@@ -1,17 +1,14 @@
-[![NPM version][npm-image]][npm-url]
 [![build status][travis-image]][travis-url]
-[![codecov][codecov-image]][codecov-url]
+[![NPM version][npm-image]][npm-url]
 [![Coverage Status][coverall-image]][coverall-url]
 [![Codacy][codacy-image]][codacy-url]
 [![devDependency Status][david-image]][david-url]
 [![devDevDependency Status][david-image-dev]][david-url-dev]
 
-[npm-image]: https://img.shields.io/npm/v/ali-oss-extra.svg
-[npm-url]: https://npmjs.org/package/ali-oss-extra
 [travis-image]: https://travis-ci.org/jackytck/ali-oss-extra.svg?branch=master
 [travis-url]: https://travis-ci.org/jackytck/ali-oss-extra
-[codecov-image]: https://codecov.io/gh/jackytck/ali-oss-extra/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/jackytck/ali-oss-extra
+[npm-image]: https://img.shields.io/npm/v/ali-oss-extra.svg
+[npm-url]: https://npmjs.org/package/ali-oss-extra
 [coverall-image]: https://coveralls.io/repos/github/jackytck/ali-oss-extra/badge.svg?branch=master
 [coverall-url]: https://coveralls.io/github/jackytck/ali-oss-extra?branch=master
 [codacy-image]: https://api.codacy.com/project/badge/Grade/17798fbc8e0341b890ccb3b6631c2770
@@ -174,7 +171,7 @@ const result = await store.deleteDir('a_dir')
 ```
 Returns:
 ```js
-[ 
+[
   'a_dir/b/c/d/fileD1.txt',
   'a_dir/b/c/d/fileD2.txt',
   'a_dir/b/c/d/fileD3.txt',
