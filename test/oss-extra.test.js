@@ -4,9 +4,12 @@ import OSS from '..'
 import config from './config'
 import chaiThings from 'chai-things'
 import fs from 'fs-extra'
+import crypto from 'crypto'
+import chaiAsPromised from 'chai-as-promised'
 
 chai.should()
 chai.use(chaiThings)
+chai.use(chaiAsPromised)
 
 describe('Ali-OSS-Extra', () => {
   const store = new OSS(config.OSS)
@@ -69,7 +72,7 @@ describe('Ali-OSS-Extra', () => {
     fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
     fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
     fs.writeFileSync('./a/b/c/d/fileD3.txt', 'fileD3 content')
-    const result = await store.syncDir('./a', 'syncDirTest')
+    const result = await store.syncDir('./a', 'syncDirTest', { verbose: true })
 
     result.should.be.instanceof(Object)
     result.should.have.property('put')
@@ -83,15 +86,26 @@ describe('Ali-OSS-Extra', () => {
     const fileD1 = result.put.filter(f => f.name === 'syncDirTest/b/c/d/fileD1.txt')
     fileD1.length.should.equal(1)
     fileD1[0].res.status.should.equal(200)
+  })
 
-    fs.removeSync('./a')
+  it('sync in multipart fashion', async () => {
+    const buffer = crypto.randomBytes(10000000)
+    fs.writeFileSync('./a/random.dat', buffer)
+    const result = await store.syncDir('./a', 'syncDirTest', { verbose: true })
+    result.put[0].res.status.should.equal(200)
+  })
+
+  it('throw if local directory does not exist', async () => {
+    const p = store.syncDir('./abc', 'syncDirTest', { verbose: true })
+    return p.should.be.rejectedWith(Error)
   })
 
   it('delete a directory', async () => {
     const result = await store.deleteDir('syncDirTest')
     result.should.be.instanceof(Array)
-    result.length.should.equal(7)
+    result.length.should.equal(8)
     result.should.include('syncDirTest/b/c/d/fileD1.txt')
+    fs.removeSync('./a')
   })
 
   it('delete a non-existing directory without error', async () => {
