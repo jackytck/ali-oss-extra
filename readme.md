@@ -9,7 +9,7 @@
 [travis-url]: https://travis-ci.org/jackytck/ali-oss-extra
 [npm-image]: https://img.shields.io/npm/v/ali-oss-extra.svg
 [npm-url]: https://npmjs.org/package/ali-oss-extra
-[coverall-image]: https://coveralls.io/repos/github/jackytck/ali-oss-extra/badge.svg?branch=master
+[coverall-image]: https://coveralls.io/repos/jackytck/ali-oss-extra/badge.svg?branch=master
 [coverall-url]: https://coveralls.io/github/jackytck/ali-oss-extra?branch=master
 [codacy-image]: https://api.codacy.com/project/badge/Grade/17798fbc8e0341b890ccb3b6631c2770
 [codacy-url]: https://www.codacy.com/app/jackytck/ali-oss-extra?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackytck/ali-oss-extra&amp;utm_campaign=Badge_Grade
