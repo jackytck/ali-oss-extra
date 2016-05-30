@@ -54,6 +54,35 @@ But every method returns the promised version, which could be combined with asyn
 const result = await store.listBuckets({ 'max-keys': 10 })
 console.log(result);
 ```
+
+#### List directory
+List all files under a prefix. **Not** limited to 1000.
+```js
+// List all files in a prefix
+const result = await store.listDir('user_data')
+```
+Return:
+```json
+[
+  { name: 'user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
+    url: 'http://my-bucket.oss-us-west-1.aliyuncs.com/user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
+    lastModified: '2016-05-29T12:14:15.000Z',
+    etag: '"A81DD21E0322B643AB6F6782B5C96012"',
+    type: 'Normal',
+    size: 443,
+    storageClass: 'Standard',
+    owner: { id: '1400663040702136', displayName: '1400663040702136' } },
+  { name: 'user_data/web/f460cb792b6c7fd5e21a2f311faaa3b0.ab.png',
+    url: 'http://my-bucket.oss-us-west-1.aliyuncs.com/user_data/web/f460cb792b6c7fd5e21a2f311faaa3b0.ab.png',
+    lastModified: '2016-05-29T12:14:16.000Z',
+    etag: '"26D3700FCF7421B723A7AE2F794DC361"',
+    type: 'Normal',
+    size: 230547,
+    storageClass: 'Standard',
+    owner: { id: '1400663040702136', displayName: '1400663040702136' } },
+...]
+```
+
 ### License
 
 MIT

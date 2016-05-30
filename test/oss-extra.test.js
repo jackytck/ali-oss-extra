@@ -41,4 +41,11 @@ describe('Ali-OSS-Extra', () => {
     result.should.all.have.property('owner')
     done()
   })
+
+  it('get an empty list if prefix is not found', async (done) => {
+    const result = await store.listDir('not-existing')
+    result.should.be.instanceof(Array)
+    result.length.should.equal(0)
+    done()
+  })
 })
