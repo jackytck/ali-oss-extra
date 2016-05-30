@@ -26,7 +26,7 @@ npm i -S ali-oss-extra
 
 ### Extra methods
 
-* [`listDir (prefix, projection = [])`](#listDir)
+* [`listDir (prefix, projection = [])`](#listdir)
 * syncDir (directory, prefix, options = { delete: true, retryLimit: null }, meta = { checkPointMap: new Map() })
 * deleteDir (prefix, meta = { retryLimit: null })
 * putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512}, meta = { checkPointMap: new Map() })
