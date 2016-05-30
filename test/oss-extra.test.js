@@ -31,6 +31,10 @@ describe('Ali-OSS-Extra', () => {
     result.res.status.should.equal(200)
   })
 
+  it('throw if prefix in listDir is not a string', async () => {
+    return store.listDir({}).should.be.rejectedWith(Error)
+  })
+
   it('list all files of prefix recursively', async () => {
     const result = await store.listDir(config.TEST_PREFIX)
     result.should.be.instanceof(Array)
@@ -63,6 +67,15 @@ describe('Ali-OSS-Extra', () => {
     result.should.all.not.have.property('owner')
   })
 
+  it('throw if prefix in syncDir is not a string', async () => {
+    return store.syncDir({}, 'syncDirTest').should.be.rejectedWith(Error)
+  })
+
+  it('throw if local directory does not exist', async () => {
+    const p = store.syncDir('./abc', 'syncDirTest', { verbose: true })
+    return p.should.be.rejectedWith(Error)
+  })
+
   it('sync a directory', async () => {
     fs.mkdirsSync('./a/b/c/d/')
     fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
@@ -78,14 +91,22 @@ describe('Ali-OSS-Extra', () => {
     result.should.have.property('put')
     result.should.have.property('delete')
     result.put.should.be.instanceof(Array)
+    result.delete.should.be.instanceof(Array)
     result.put.length.should.equal(7)
     result.put.should.all.have.property('name')
     result.put.should.all.have.property('url')
     result.put.should.all.have.property('res')
+    result.delete.length.should.equal(0)
 
     const fileD1 = result.put.filter(f => f.name === 'syncDirTest/b/c/d/fileD1.txt')
     fileD1.length.should.equal(1)
     fileD1[0].res.status.should.equal(200)
+
+    fs.removeSync('./a/b/c/fileC1.txt')
+    fs.removeSync('./a/b/c/d/fileD2.txt')
+    const result2 = await store.syncDir('./a', 'syncDirTest', { verbose: true })
+    result2.put.length.should.equal(0)
+    result2.delete.length.should.equal(2)
   })
 
   it('sync in multipart fashion', async () => {
@@ -95,15 +116,23 @@ describe('Ali-OSS-Extra', () => {
     result.put[0].res.status.should.equal(200)
   })
 
-  it('throw if local directory does not exist', async () => {
-    const p = store.syncDir('./abc', 'syncDirTest', { verbose: true })
-    return p.should.be.rejectedWith(Error)
+  it('throw if download name is not a string', async () => {
+    return store.setDownloadName('syncDirTest/random.dat', {}).should.be.rejectedWith(Error)
+  })
+
+  it('set download name', async () => {
+    const result = await store.setDownloadName('syncDirTest/random.dat', 'random.dat')
+    result.res.status.should.equal(200)
+  })
+
+  it('throw if prefix in deleteDir is not a string', async () => {
+    return store.deleteDir({}).should.be.rejectedWith(Error)
   })
 
   it('delete a directory', async () => {
     const result = await store.deleteDir('syncDirTest')
     result.should.be.instanceof(Array)
-    result.length.should.equal(8)
+    result.length.should.equal(6)
     result.should.include('syncDirTest/b/c/d/fileD1.txt')
     fs.removeSync('./a')
   })
