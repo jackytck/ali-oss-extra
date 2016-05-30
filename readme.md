@@ -47,12 +47,29 @@ const store = new OSS({
 })
 ```
 
-But every method returns the promised version, which could be combined with async/await:
+All methods from ali-oss are available. But every method returns a promise, which could be used in async/await:
 
 ```js
 // List top 10 buckets
 const result = await store.listBuckets({ 'max-keys': 10 })
-console.log(result);
+```
+
+Return:
+```js
+{ buckets:
+   [ { name: 'my-bucket',
+       region: 'oss-us-west-1',
+       creationDate: '2016-05-29T12:13:03.000Z' },
+     { name: 'my-data',
+       region: 'oss-cn-shenzhen',
+       creationDate: '2016-05-14T08:02:46.000Z' },
+     { name: 'my-data-bj-dev',
+       region: 'oss-cn-beijing',
+       creationDate: '2016-05-24T15:17:53.000Z' },
+     { name: 'my-data-dev2',
+       region: 'oss-cn-shenzhen',
+       creationDate: '2016-05-14T08:02:19.000Z' },
+   ...
 ```
 
 #### listDir
@@ -63,8 +80,7 @@ const result = await store.listDir('user_data')
 ```
 Return:
 ```js
-[
-  { name: 'user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
+[ { name: 'user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
     url: 'http://my-bucket.oss-us-west-1.aliyuncs.com/user_data/web/f44dc4cd8976c254362c251a5bc3cfc3.txt',
     lastModified: '2016-05-29T12:14:15.000Z',
     etag: '"A81DD21E0322B643AB6F6782B5C96012"',

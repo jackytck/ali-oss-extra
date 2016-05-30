@@ -19,16 +19,15 @@ describe('Ali-OSS-Extra', () => {
     done()
   })
 
-  it('list top 10 buckets', async (done) => {
+  it('list top 10 buckets', async () => {
     const result = await store.listBuckets({ 'max-keys': 10 })
     result.should.have.property('buckets')
     result.should.have.property('res')
     result.res.should.have.property('status')
     result.res.status.should.equal(200)
-    done()
   })
 
-  it('list all files of prefix recursively', async (done) => {
+  it('list all files of prefix recursively', async () => {
     const result = await store.listDir(config.TEST_PREFIX)
     result.should.be.instanceof(Array)
     result.should.all.have.property('name')
@@ -39,13 +38,24 @@ describe('Ali-OSS-Extra', () => {
     result.should.all.have.property('size')
     result.should.all.have.property('storageClass')
     result.should.all.have.property('owner')
-    done()
   })
 
-  it('get an empty list if prefix is not found', async (done) => {
+  it('get an empty list if prefix is not found', async () => {
     const result = await store.listDir('not-existing')
     result.should.be.instanceof(Array)
     result.length.should.equal(0)
-    done()
+  })
+
+  it('list all files of prefix recursively with projection', async () => {
+    const result = await store.listDir(config.TEST_PREFIX, ['name', 'lastModified', 'size'])
+    result.should.be.instanceof(Array)
+    result.should.all.have.property('name')
+    result.should.all.not.have.property('url')
+    result.should.all.have.property('lastModified')
+    result.should.all.not.have.property('etag')
+    result.should.all.not.have.property('type')
+    result.should.all.have.property('size')
+    result.should.all.not.have.property('storageClass')
+    result.should.all.not.have.property('owner')
   })
 })
