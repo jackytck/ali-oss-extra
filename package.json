@@ -8,7 +8,8 @@
     "pretest": "npm run style && npm run build",
     "style": "standard -v src/*.js test/*.js",
     "codecov": "codecov",
-    "test": "istanbul cover _mocha -- -R spec --compilers js:babel-core/register test/*.test.js",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "test": "istanbul cover _mocha --report lcovonly -- -R spec --compilers js:babel-core/register test/*.test.js",
     "test:quick": "mocha --compilers js:babel-core/register test/*.test.js",
     "test:watch": "watch 'npm run test' src",
     "prepublish": "npm run build"
@@ -42,10 +43,12 @@
     "chai": "^3.5.0",
     "chai-things": "^0.2.0",
     "codecov": "^1.0.1",
+    "coveralls": "^2.11.9",
     "dotenv": "^2.0.0",
     "fs-extra": "^0.30.0",
     "istanbul": "1.0.0-alpha.2",
     "mocha": "^2.5.3",
+    "mocha-lcov-reporter": "^1.2.0",
     "node-notifier": "^4.5.0",
     "standard": "^7.1.0",
     "watch": "^0.18.0"

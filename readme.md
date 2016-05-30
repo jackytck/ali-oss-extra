@@ -1,6 +1,7 @@
 [![NPM version][npm-image]][npm-url]
 [![build status][travis-image]][travis-url]
 [![codecov][codecov-image]][codecov-url]
+[![Coverage Status][coverall-image]][coverall-url]
 [![Codacy][codacy-image]][codacy-url]
 [![devDependency Status][david-image]][david-url]
 [![devDevDependency Status][david-image-dev]][david-url-dev]
@@ -11,6 +12,8 @@
 [travis-url]: https://travis-ci.org/jackytck/ali-oss-extra
 [codecov-image]: https://codecov.io/gh/jackytck/ali-oss-extra/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/jackytck/ali-oss-extra
+[coverall-image]: https://coveralls.io/repos/github/jackytck/ali-oss-extra/badge.svg?branch=master
+[coverall-url]: https://coveralls.io/github/jackytck/ali-oss-extra?branch=master
 [codacy-image]: https://api.codacy.com/project/badge/Grade/17798fbc8e0341b890ccb3b6631c2770
 [codacy-url]: https://www.codacy.com/app/jackytck/ali-oss-extra?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackytck/ali-oss-extra&amp;utm_campaign=Badge_Grade
 [david-image]: https://david-dm.org/jackytck/ali-oss-extra.svg
@@ -72,6 +75,8 @@ Return:
    ...
 ```
 
+---------------------------------------
+
 <a name="listDir"></a>
 ### listDir (prefix, projection = [])
 List all files under a prefix. **Not** limited to 1000 files.
@@ -99,6 +104,8 @@ Return:
     owner: { id: '1400663040702136', displayName: '1400663040702136' } },
 ...]
 ```
+
+---------------------------------------
 
 <a name="syncDir"></a>
 ### syncDir (directory, prefix, options)
@@ -152,6 +159,8 @@ Return:
   "delete": []
 }
 ```
+
+---------------------------------------
 
 <a name="deleteDir"></a>
 ### deleteDir (prefix, options)
