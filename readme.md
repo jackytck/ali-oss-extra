@@ -37,7 +37,7 @@ npm install -S ali-oss-extra
 * [`setDownloadName`](#setDownloadName)
 
 ### Usage
-Use as a drop-in replacement of 'ali-oss':
+Use as a drop-in replacement of [ali-oss](https://github.com/ali-sdk/ali-oss):
 
 ```js
 import OSS from 'ali-oss-extra'
@@ -46,7 +46,7 @@ const store = new OSS({
   accessKeyId: 'your access key',
   accessKeySecret: 'your access secret',
   bucket: 'your bucket name',
-  region: 'oss-cn-hongkong'
+  region: 'region of your bucket'
 })
 ```
 
@@ -345,7 +345,7 @@ Returns:
      aborted: false,
      rt: 176,
      keepAliveSocket: true,
-     data: <Buffer 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d 22 31 2e 30 22 20 65 6e 63 6f 64 69 6e 67 3d 22 55 54 46 2d 38 22 3f 3e 0a 3c 43 6f 70 79 4f 62 6a 65 63 74 ... >,
+     data: <Buffer ... >,
      requestUrls: [ 'http://my-bucket.oss-us-west-1.aliyuncs.com/a_dir/abcdefg' ] } }
 ```
 

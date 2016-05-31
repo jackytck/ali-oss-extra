@@ -1,6 +1,6 @@
 {
   "name": "ali-oss-extra",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Extend the official ali-oss with more convenient methods, such as listing, syncing a directory, put or delete a list of files etc.",
   "main": "dst/index.js",
   "scripts": {
