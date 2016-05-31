@@ -76,9 +76,47 @@ describe('Ali-OSS-Extra', () => {
     return store.putList([{ src: 'abc', dst: 'abc' }]).should.be.rejectedWith(Error)
   })
 
+  it('put files via putList', async () => {
+    fs.mkdirsSync('./a')
+    fs.writeFileSync('./a/data1.txt', 'data1 content')
+    fs.writeFileSync('./a/data2.txt', 'data2 content')
+    const result = await store.putList([
+      {
+        src: './a/data1.txt',
+        dst: 'a/data1.txt',
+        size: 100
+      },
+      {
+        src: './a/data2.txt',
+        dst: 'a/data2.txt',
+        size: 200
+      }
+    ], { thread: 10 })
+    fs.removeSync('./a')
+    result.should.be.instanceof(Array)
+    result.length.should.equal(2)
+    result[0].res.status.should.equal(200)
+    result[1].res.status.should.equal(200)
+  })
+
   // deleteList
   it('throw if file list passed in deleteList is not correct', async () => {
     return store.deleteList([{ name: 3 }]).should.be.rejectedWith(Error)
+  })
+
+  it('delete files via deleteList', async () => {
+    const result = await store.deleteList([
+      {
+        name: 'a/data1.txt'
+      },
+      {
+        name: 'a/data2.txt'
+      }
+    ], { thread: 25 })
+    result.should.be.instanceof(Array)
+    result.length.should.equal(2)
+    result[0].res.status.should.equal(204)
+    result[1].res.status.should.equal(204)
   })
 
   it('throw if prefix in syncDir is not a string', async () => {
@@ -187,7 +225,7 @@ describe('Ali-OSS-Extra', () => {
 
     it('upload large number of small files', async () => {
       fs.mkdirsSync(`./${dir}`)
-      const size = process.env.TRAVIS ? 100000 : 10000
+      const size = process.env.TRAVIS ? 50000 : 5000
       for (let i = 0; i < size; i++) {
         const buffer = crypto.randomBytes(1)
         fs.writeFileSync(`./${dir}/${i}.bin`, buffer)
