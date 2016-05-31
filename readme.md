@@ -2,6 +2,7 @@
 [![NPM version][npm-image]][npm-url]
 [![Coverage Status][coverall-image]][coverall-url]
 [![Codacy][codacy-image]][codacy-url]
+[![js-standard-style][standard-image]][standard-url]
 [![devDependency Status][david-image]][david-url]
 [![devDevDependency Status][david-image-dev]][david-url-dev]
 
@@ -13,6 +14,8 @@
 [coverall-url]: https://coveralls.io/github/jackytck/ali-oss-extra?branch=master
 [codacy-image]: https://api.codacy.com/project/badge/Grade/17798fbc8e0341b890ccb3b6631c2770
 [codacy-url]: https://www.codacy.com/app/jackytck/ali-oss-extra?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackytck/ali-oss-extra&amp;utm_campaign=Badge_Grade
+[standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg
+[standard-url]: http://standardjs.com
 [david-image]: https://david-dm.org/jackytck/ali-oss-extra.svg
 [david-url]: https://david-dm.org/jackytck/ali-oss-extra
 [david-image-dev]: https://david-dm.org/jackytck/ali-oss-extra/dev-status.svg
@@ -21,7 +24,7 @@
 ### Install
 
 ```bash
-npm i -S ali-oss-extra
+npm install -S ali-oss-extra
 ```
 
 ### Extra methods
@@ -29,9 +32,9 @@ npm i -S ali-oss-extra
 * [`listDir`](#listDir)
 * [`syncDir`](#syncDir)
 * [`deleteDir`](#deleteDir)
-* putList (fileList, options = { thread: 20, bigFile: 1024 * 500, partSize: 1024 * 500, timeout: 10 * 1000, ulimit: 512}, meta = { checkPointMap: new Map() })
-* deleteList (fileList, options = { thread: 20 })
-* setDownloadName (file, downloadName)
+* [`putList`](#putList)
+* [`deleteList`](#deleteList)
+* [`setDownloadName`](#setDownloadName)
 
 ### Usage
 Use as a drop-in replacement of 'ali-oss':
@@ -181,6 +184,169 @@ Returns:
   'a_dir/fileA2.txt',
   ...
 ]
+```
+
+---------------------------------------
+
+<a name="putList"></a>
+### putList (fileList, options)
+
+__fileList__
+* Array of object of the following:
+* `src` - Local path of file
+* `dst` - OSS path
+* `size` - File size (in byte) of file
+
+__Options__
+* `thread` - Number of concurrent threads to upload small files
+*  `bigFile` - Thresold (in byte) of determining wheather a file is big or small
+* `partSize` - Size  (in byte) of each multipart
+* `timeout` - Timeout (in milliseconds)
+* `ulimit` - Maximum number of open files
+
+Upload a list of files to OSS. **Not** limited to 1000 files.
+
+```js
+const result = await store.putList([
+  {
+    src: './a/data1.txt',
+    dst: 'a/data1.txt',
+    size: 100
+  },
+  {
+    src: './a/data2.txt',
+    dst: 'a/data2.txt',
+    size: 200
+  }
+], { thread: 10 })
+```
+Returns:
+```js
+[
+  {
+    "name": "a/data1.txt",
+    "url": "http://my-bucket.oss-us-west-1.aliyuncs.com/a/data1.txt",
+    "res": {
+      "status": 200,
+      "statusCode": 200,
+      "headers": {
+        "server": "AliyunOSS",
+        "date": "Tue, 31 May 2016 09:50:22 GMT",
+        "content-length": "0",
+        "connection": "keep-alive",
+        "x-oss-request-id": "574D5E5E7F5DBA946A0F5CF9",
+        "x-oss-bucket-storage-type": "standard",
+        "etag": "\"654345A9C87BE1E0AE1ACA461609CD3A\"",
+        "x-oss-server-time": "27"
+      },
+      "size": 0,
+      "aborted": false,
+      "rt": 198,
+      "keepAliveSocket": true,
+      "data": {
+        "type": "Buffer",
+        "data": []
+      },
+      "requestUrls": [
+        "http://my-bucket.oss-us-west-1.aliyuncs.com/a/data1.txt"
+      ]
+    }
+  },
+  ...
+]
+```
+
+---------------------------------------
+
+<a name="deleteList"></a>
+### deleteList (fileList, options)
+
+__fileList__
+* Array of object of the following:
+* `name` - OSS path
+
+__Options__
+* `thread` - Number of concurrent threads to delete
+
+Delete a list of files in OSS. **Not** limited to 1000 files.
+
+```js
+const result = await store.deleteList([
+  {
+    name: 'a/data1.txt'
+  },
+  {
+    name: 'a/data2.txt'
+  }
+], { thread: 25 })
+```
+Returns:
+```js
+[
+  {
+    "res": {
+      "status": 204,
+      "statusCode": 204,
+      "headers": {
+        "server": "AliyunOSS",
+        "date": "Tue, 31 May 2016 09:58:28 GMT",
+        "content-length": "0",
+        "connection": "keep-alive",
+        "x-oss-request-id": "574D60440DA824296F114761",
+        "x-oss-bucket-storage-type": "standard",
+        "x-oss-server-time": "2"
+      },
+      "size": 0,
+      "aborted": false,
+      "rt": 162,
+      "keepAliveSocket": true,
+      "data": {
+        "type": "Buffer",
+        "data": []
+      },
+      "requestUrls": [
+        "http://my-bucket.oss-us-west-1.aliyuncs.com/a/data1.txt"
+      ]
+    }
+  },
+  ...
+]
+```
+
+---------------------------------------
+
+<a name="setDownloadName"></a>
+### setDownloadName (file, downloadName)
+
+Set the attachment name in content-disposition header. Only support file smaller than 5GB.
+
+```js
+const result = await store.setDownloadName('a_dir/abcdefg', 'data.txt')
+```
+Returns:
+```js
+{ data:
+   { etag: '"9D8606B3FB15EA4687402D4FD7C391B3-2"',
+     lastModified: '2016-05-31T10:07:26.000Z' },
+  res:
+   { status: 200,
+     statusCode: 200,
+     headers:
+      { server: 'AliyunOSS',
+        date: 'Tue, 31 May 2016 10:07:26 GMT',
+        'content-type': 'application/xml',
+        'content-length': '186',
+        connection: 'keep-alive',
+        'x-oss-request-id': '574D625E0DA824296F11A15A',
+        'x-oss-bucket-storage-type': 'standard',
+        etag: '"9D8606B3FB15EA4687402D4FD7C391B3-2"',
+        'x-oss-server-time': '5' },
+     size: 186,
+     aborted: false,
+     rt: 176,
+     keepAliveSocket: true,
+     data: <Buffer 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d 22 31 2e 30 22 20 65 6e 63 6f 64 69 6e 67 3d 22 55 54 46 2d 38 22 3f 3e 0a 3c 43 6f 70 79 4f 62 6a 65 63 74 ... >,
+     requestUrls: [ 'http://my-bucket.oss-us-west-1.aliyuncs.com/a_dir/abcdefg' ] } }
 ```
 
 ### License
