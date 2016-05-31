@@ -13,6 +13,7 @@ chai.use(chaiAsPromised)
 
 describe('Ali-OSS-Extra', () => {
   const store = new OSS(config.OSS)
+  const testDir = 'test_dir'
 
   it('initialize', done => {
     const opts = store.options
@@ -68,11 +69,11 @@ describe('Ali-OSS-Extra', () => {
   })
 
   it('throw if prefix in syncDir is not a string', async () => {
-    return store.syncDir({}, 'syncDirTest').should.be.rejectedWith(Error)
+    return store.syncDir({}, testDir).should.be.rejectedWith(Error)
   })
 
   it('throw if local directory does not exist', async () => {
-    const p = store.syncDir('./abc', 'syncDirTest', { verbose: true })
+    const p = store.syncDir('./abc', testDir, { verbose: true })
     return p.should.be.rejectedWith(Error)
   })
 
@@ -85,7 +86,7 @@ describe('Ali-OSS-Extra', () => {
     fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
     fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
     fs.writeFileSync('./a/b/c/d/fileD3.txt', 'fileD3 content')
-    const result = await store.syncDir('./a', 'syncDirTest', { verbose: true })
+    const result = await store.syncDir('./a', testDir, { verbose: true })
 
     result.should.be.instanceof(Object)
     result.should.have.property('put')
@@ -104,7 +105,7 @@ describe('Ali-OSS-Extra', () => {
 
     fs.removeSync('./a/b/c/fileC1.txt')
     fs.removeSync('./a/b/c/d/fileD2.txt')
-    const result2 = await store.syncDir('./a', 'syncDirTest', { verbose: true })
+    const result2 = await store.syncDir('./a', testDir, { verbose: true })
     result2.put.length.should.equal(0)
     result2.delete.length.should.equal(2)
   })
@@ -112,7 +113,7 @@ describe('Ali-OSS-Extra', () => {
   it('sync in multipart fashion', async () => {
     const buffer = crypto.randomBytes(10000000)
     fs.writeFileSync('./a/random.dat', buffer)
-    const result = await store.syncDir('./a', 'syncDirTest', { verbose: true })
+    const result = await store.syncDir('./a', testDir, { verbose: true })
     result.put[0].res.status.should.equal(200)
   })
 
@@ -130,7 +131,7 @@ describe('Ali-OSS-Extra', () => {
   })
 
   it('delete a directory', async () => {
-    const result = await store.deleteDir('syncDirTest')
+    const result = await store.deleteDir(testDir)
     result.should.be.instanceof(Array)
     result.length.should.equal(6)
     result.should.include('syncDirTest/b/c/d/fileD1.txt')
@@ -138,7 +139,7 @@ describe('Ali-OSS-Extra', () => {
   })
 
   it('delete a non-existing directory without error', async () => {
-    const result = await store.deleteDir('syncDirTest')
+    const result = await store.deleteDir(testDir)
     result.should.be.instanceof(Array)
     result.length.should.equal(0)
   })
