@@ -13,7 +13,10 @@ chai.use(chaiAsPromised)
 
 describe('Ali-OSS-Extra', () => {
   const store = new OSS(config.OSS)
-  const testDir = 'test_dir'
+  const store1s = new OSS(Object.assign({}, config.OSS, { timeout: '1s' }))
+  const store5s = new OSS(Object.assign({}, config.OSS, { timeout: '5s' }))
+  const jobId = process.env.TRAVIS_JOB_ID || '0'
+  const testDir = `general_test_${jobId}`
 
   it('initialize', done => {
     const opts = store.options
@@ -68,6 +71,16 @@ describe('Ali-OSS-Extra', () => {
     result.should.all.not.have.property('owner')
   })
 
+  // putList
+  it('throw if file list passed in putList is not correct', async () => {
+    return store.putList([{ src: 'abc', dst: 'abc' }]).should.be.rejectedWith(Error)
+  })
+
+  // deleteList
+  it('throw if file list passed in deleteList is not correct', async () => {
+    return store.deleteList([{ name: 3 }]).should.be.rejectedWith(Error)
+  })
+
   it('throw if prefix in syncDir is not a string', async () => {
     return store.syncDir({}, testDir).should.be.rejectedWith(Error)
   })
@@ -99,7 +112,7 @@ describe('Ali-OSS-Extra', () => {
     result.put.should.all.have.property('res')
     result.delete.length.should.equal(0)
 
-    const fileD1 = result.put.filter(f => f.name === 'syncDirTest/b/c/d/fileD1.txt')
+    const fileD1 = result.put.filter(f => f.name === `${testDir}/b/c/d/fileD1.txt`)
     fileD1.length.should.equal(1)
     fileD1[0].res.status.should.equal(200)
 
@@ -108,21 +121,32 @@ describe('Ali-OSS-Extra', () => {
     const result2 = await store.syncDir('./a', testDir, { verbose: true })
     result2.put.length.should.equal(0)
     result2.delete.length.should.equal(2)
+
+    fs.removeSync('./a/fileA1.txt')
+    const result3 = await store.syncDir('./a', testDir)
+    result3.put.length.should.equal(0)
+    result3.delete.length.should.equal(1)
+  })
+
+  it('not upload if synchronizing same directory again', async () => {
+    const result = await store.syncDir('./a', testDir)
+    result.put.length.should.equal(0)
+    result.delete.length.should.equal(0)
   })
 
   it('sync in multipart fashion', async () => {
-    const buffer = crypto.randomBytes(10000000)
+    const buffer = crypto.randomBytes(1000000)
     fs.writeFileSync('./a/random.dat', buffer)
     const result = await store.syncDir('./a', testDir, { verbose: true })
     result.put[0].res.status.should.equal(200)
   })
 
   it('throw if download name is not a string', async () => {
-    return store.setDownloadName('syncDirTest/random.dat', {}).should.be.rejectedWith(Error)
+    return store.setDownloadName(`${testDir}/random.dat`, {}).should.be.rejectedWith(Error)
   })
 
   it('set download name', async () => {
-    const result = await store.setDownloadName('syncDirTest/random.dat', 'random.dat')
+    const result = await store.setDownloadName(`${testDir}/random.dat`, 'random.dat')
     result.res.status.should.equal(200)
   })
 
@@ -133,8 +157,8 @@ describe('Ali-OSS-Extra', () => {
   it('delete a directory', async () => {
     const result = await store.deleteDir(testDir)
     result.should.be.instanceof(Array)
-    result.length.should.equal(6)
-    result.should.include('syncDirTest/b/c/d/fileD1.txt')
+    result.length.should.equal(5)
+    result.should.include(`${testDir}/b/c/d/fileD1.txt`)
     fs.removeSync('./a')
   })
 
@@ -142,5 +166,37 @@ describe('Ali-OSS-Extra', () => {
     const result = await store.deleteDir(testDir)
     result.should.be.instanceof(Array)
     result.length.should.equal(0)
+  })
+
+  describe('timeout tests', () => {
+    const dir = `timeout_test_${jobId}`
+
+    it('throw retry limit exceeded', async () => {
+      return store1s._getCloudFilesMap(config.TEST_PREFIX, { retryLimit: 5 }).should.be.rejectedWith(Error)
+    })
+
+    it('catch timeout in syncDir and retry', async () => {
+      fs.mkdirsSync(`./${dir}`)
+      const buffer = crypto.randomBytes(20000000)
+      fs.writeFileSync(`./${dir}/random.dat`, buffer)
+      const result = await store5s.syncDir(`./${dir}`, dir, { verbose: true })
+      result.put[0].res.status.should.equal(200)
+      await store.deleteDir(dir)
+      fs.removeSync(`./${dir}`)
+    })
+
+    it('upload large number of small files', async () => {
+      fs.mkdirsSync(`./${dir}`)
+      const size = process.env.TRAVIS ? 100000 : 10000
+      for (let i = 0; i < size; i++) {
+        const buffer = crypto.randomBytes(1)
+        fs.writeFileSync(`./${dir}/${i}.bin`, buffer)
+      }
+      const result = await store5s.syncDir(`./${dir}`, dir)
+      result.put.length.should.equal(size)
+      result.delete.length.should.equal(0)
+      await store.deleteDir(dir)
+      fs.removeSync(`./${dir}`)
+    })
   })
 })
