@@ -161,6 +161,9 @@ class OSSExtra extends OSS {
         reject = lastReject
       }
       if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
+        if (verbose) {
+          console.error('syncDir: Retry limit exceeded!')
+        }
         return reject(new Error('Retry limit exceeded!'))
       }
 
@@ -294,8 +297,8 @@ class OSSExtra extends OSS {
       }
       resolve = meta.resolve || resolve
       reject = meta.reject || reject
-      const tried = (meta.tried || 0) + 1
-      if (retryLimit && Number.isInteger(retryLimit) && tried > retryLimit) {
+      const trial = (meta.trial || 0) + 1
+      if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
         return reject(new Error('Retry limit exceeded!'))
       }
 
@@ -304,7 +307,7 @@ class OSSExtra extends OSS {
         objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
       } catch (err) {
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-          return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
+          return setTimeout(() => this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial }), 3000)
         } else {
           return reject(err)
         }
@@ -317,7 +320,7 @@ class OSSExtra extends OSS {
           done(null, data)
         } catch (err) {
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-            return setTimeout(() => this.deleteDir(prefix, { resolve, reject, tried }), 3000)
+            return setTimeout(() => this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial }), 3000)
           } else {
             return reject(err)
           }

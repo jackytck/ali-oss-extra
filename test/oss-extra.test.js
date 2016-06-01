@@ -209,7 +209,7 @@ describe('Ali-OSS-Extra', () => {
   describe('timeout tests', () => {
     const dir = `timeout_test_${jobId}`
 
-    it('throw retry limit exceeded', async () => {
+    it('throw retry limit exceeded in _getCloudFilesMap', async () => {
       return store20ms._getCloudFilesMap(config.TEST_PREFIX, { retryLimit: 5 }).should.be.rejectedWith(Error)
     })
 
@@ -219,6 +219,29 @@ describe('Ali-OSS-Extra', () => {
       fs.writeFileSync(`./${dir}/random.dat`, buffer)
       const result = await store5s.syncDir(`./${dir}`, dir, { verbose: true })
       result.put[0].res.status.should.equal(200)
+    })
+
+    it('throw retry limit exceeded in syncDir: upload', async () => {
+      const buffer = crypto.randomBytes(100000000)
+      fs.writeFileSync(`./${dir}/random2.dat`, buffer)
+      const localFilesMap = await store5s._getLocalFilesMap(`./${dir}`, dir)
+      let uploadFilesMap = new Map()
+      for (let f of localFilesMap.values()) {
+        uploadFilesMap.set(f.dst, f)
+      }
+      return store20ms.syncDir(`./${dir}`, dir, { retryLimit: 3, verbose: true }, { retrying: true, uploadFilesMap, trial: 1 }).should.be.rejectedWith(Error)
+    })
+
+    it('throw retry limit exceeded in syncDir: delete', async () => {
+      const cloudFilesMap = await store5s._getCloudFilesMap(dir)
+      let deleteFilesMap = new Map()
+      for (let f of cloudFilesMap.values()) {
+        deleteFilesMap.set(f.name, f)
+      }
+      return store20ms.syncDir(`./${dir}`, dir, { retryLimit: 3, verbose: true }, { retrying: true, deleteFilesMap, trial: 1 }).should.be.rejectedWith(Error)
+    })
+
+    it('delete dir without timeout error 1', async () => {
       await store.deleteDir(dir)
       fs.removeSync(`./${dir}`)
     })
@@ -233,6 +256,13 @@ describe('Ali-OSS-Extra', () => {
       const result = await store5s.syncDir(`./${dir}`, dir)
       result.put.length.should.equal(size)
       result.delete.length.should.equal(0)
+    })
+
+    it('throw retry limit exceeded in deleteDir', async () => {
+      return store20ms.deleteDir(dir, { retryLimit: 3, verbose: true }).should.be.rejectedWith(Error)
+    })
+
+    it('delete dir without timeout error 2', async () => {
       await store.deleteDir(dir)
       fs.removeSync(`./${dir}`)
     })
