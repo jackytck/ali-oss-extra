@@ -13,7 +13,7 @@ chai.use(chaiAsPromised)
 
 describe('Ali-OSS-Extra', () => {
   const store = new OSS(config.OSS)
-  const store1s = new OSS(Object.assign({}, config.OSS, { timeout: '1s' }))
+  const store20ms = new OSS(Object.assign({}, config.OSS, { timeout: '20ms' }))
   const store5s = new OSS(Object.assign({}, config.OSS, { timeout: '5s' }))
   const jobId = process.env.TRAVIS_JOB_ID || '0'
   const testDir = `general_test_${jobId}`
@@ -209,11 +209,9 @@ describe('Ali-OSS-Extra', () => {
   describe('timeout tests', () => {
     const dir = `timeout_test_${jobId}`
 
-    if (!process.env.TRAVIS) {
-      it('throw retry limit exceeded', async () => {
-        return store1s._getCloudFilesMap(config.TEST_PREFIX, { retryLimit: 5 }).should.be.rejectedWith(Error)
-      })
-    }
+    it('throw retry limit exceeded', async () => {
+      return store20ms._getCloudFilesMap(config.TEST_PREFIX, { retryLimit: 5 }).should.be.rejectedWith(Error)
+    })
 
     it('catch timeout in syncDir and retry', async () => {
       fs.mkdirsSync(`./${dir}`)
@@ -227,7 +225,7 @@ describe('Ali-OSS-Extra', () => {
 
     it('upload large number of small files', async () => {
       fs.mkdirsSync(`./${dir}`)
-      const size = process.env.TRAVIS ? 50000 : 5000
+      const size = process.env.TRAVIS ? 25000 : 5000
       for (let i = 0; i < size; i++) {
         const buffer = crypto.randomBytes(1)
         fs.writeFileSync(`./${dir}/${i}.bin`, buffer)
