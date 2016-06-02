@@ -1,12 +1,12 @@
 import { Wrapper as OSS } from 'ali-oss'
-import { pick, cloneDeep, uniqBy } from 'lodash'
+import { pick, cloneDeep, uniqBy, sortBy } from 'lodash'
 import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 20, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -46,6 +46,7 @@ class OSSExtra extends OSS {
           done(err)
         }
       }
+      fileList = sortBy(fileList, 'size')
       Async.mapLimit(fileList, thread, putFile.bind(this), (err, results) => {
         if (err) {
           return reject(err)
@@ -222,7 +223,7 @@ class OSSExtra extends OSS {
             err.checkPointMap.delete(err.params.object)
           }
           trial++
-          return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
+          return this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap })
         } else {
           return reject(err)
         }
@@ -242,7 +243,7 @@ class OSSExtra extends OSS {
               console.log(`Delete ${err.name}, retrying...`)
             }
             trial++
-            return setTimeout(() => this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap }), 3000)
+            return this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap })
           } else {
             return reject(err)
           }
@@ -307,7 +308,7 @@ class OSSExtra extends OSS {
         objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
       } catch (err) {
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-          return setTimeout(() => this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial }), 3000)
+          return this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial })
         } else {
           return reject(err)
         }
@@ -320,7 +321,7 @@ class OSSExtra extends OSS {
           done(null, data)
         } catch (err) {
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-            return setTimeout(() => this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial }), 3000)
+            return this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial })
           } else {
             return reject(err)
           }
