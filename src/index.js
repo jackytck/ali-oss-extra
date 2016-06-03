@@ -6,7 +6,7 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 60 * 1000, ulimit = 512, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -149,8 +149,10 @@ class OSSExtra extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, { remove = true, retryLimit = null, verbose = false } = {}, { retrying = false, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
-    const options = { remove, retryLimit, verbose }
+  syncDir (directory, prefix,
+    { remove = true, retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
+    { retrying = false, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
+    const options = { remove, retryLimit, thread, timeout, ulimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))
@@ -206,7 +208,7 @@ class OSSExtra extends OSS {
         console.log(`Files to upload: ${uploadFilesMap.size}`)
       }
       try {
-        await this.putList([...uploadFilesMap.values()], { verbose }, { putResults, checkPointMap, uploadFilesMap })
+        await this.putList([...uploadFilesMap.values()], options, { putResults, checkPointMap, uploadFilesMap })
       } catch (err) {
         // catch the request or response or timeout errors, and re-try
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError' || err.name === 'NoSuchUploadError') {
@@ -229,7 +231,7 @@ class OSSExtra extends OSS {
         }
         // 5. Delete a list of files from OSS
         try {
-          await this.deleteList([...deleteFilesMap.values()], { verbose }, { deleteResults, deleteFilesMap })
+          await this.deleteList([...deleteFilesMap.values()], options, { deleteResults, deleteFilesMap })
         } catch (err) {
           // catch the request or response or timeout errors, and re-try
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {

@@ -113,6 +113,9 @@ Return:
 __Options__
 * `remove` - Remove file on OSS if it is not appeared in local directory
 * `retryLimit` - Number of times to retry after timeout
+* `thread` - Number of concurrent threads to upload small files
+* `timeout` - Timeout (in milliseconds)
+* `ulimit` - Maximum number of open files
 * `verbose` - Print debug log
 
 Synchronize a local directory to OSS recursively. Support uploading directory with large number of small or big files.
