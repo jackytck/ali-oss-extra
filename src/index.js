@@ -131,12 +131,12 @@ class OSSExtra extends OSS {
           const { retryLimit } = options
           if (retryLimit && Number.isInteger(retryLimit)) {
             if (trial < retryLimit) {
-              setTimeout(() => resolve(this._getCloudFilesMap(prefix, options, { trial })), 3000)
+              resolve(this._getCloudFilesMap(prefix, options, { trial }))
             } else {
               reject(new Error('Retry limit exceeded!'))
             }
           } else {
-            setTimeout(() => resolve(this._getCloudFilesMap(prefix)), 3000)
+            resolve(this._getCloudFilesMap(prefix))
           }
         } else {
           reject(err)
@@ -149,17 +149,11 @@ class OSSExtra extends OSS {
    * As in:
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
-  syncDir (directory, prefix, { remove = true, retryLimit = null, verbose = false } = {}, { retrying = false, lastResolve = null, lastReject = null, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
+  syncDir (directory, prefix, { remove = true, retryLimit = null, verbose = false } = {}, { retrying = false, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
     const options = { remove, retryLimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))
-      }
-      if (lastResolve) {
-        resolve = lastResolve
-      }
-      if (lastReject) {
-        reject = lastReject
       }
       if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
         if (verbose) {
@@ -223,7 +217,7 @@ class OSSExtra extends OSS {
             err.checkPointMap.delete(err.params.object)
           }
           trial++
-          return this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap })
+          return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }))
         } else {
           return reject(err)
         }
@@ -243,7 +237,7 @@ class OSSExtra extends OSS {
               console.log(`Delete ${err.name}, retrying...`)
             }
             trial++
-            return this.syncDir(directory, prefix, options, { retrying: true, lastResolve: resolve, lastReject: reject, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap })
+            return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap }))
           } else {
             return reject(err)
           }
@@ -296,8 +290,6 @@ class OSSExtra extends OSS {
       if (typeof (prefix) !== 'string') {
         return reject(new Error('deleteDir: Incorrect input!'))
       }
-      resolve = meta.resolve || resolve
-      reject = meta.reject || reject
       const trial = (meta.trial || 0) + 1
       if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
         return reject(new Error('Retry limit exceeded!'))
@@ -308,7 +300,7 @@ class OSSExtra extends OSS {
         objects = (await this.listDir(prefix, ['name'])).map(x => x.name)
       } catch (err) {
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-          return this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial })
+          return resolve(this.deleteDir(prefix, { retryLimit }, { trial }))
         } else {
           return reject(err)
         }
@@ -321,7 +313,7 @@ class OSSExtra extends OSS {
           done(null, data)
         } catch (err) {
           if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError') {
-            return this.deleteDir(prefix, { retryLimit }, { resolve, reject, trial })
+            return resolve(this.deleteDir(prefix, { retryLimit }, { trial }))
           } else {
             return reject(err)
           }
