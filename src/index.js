@@ -6,12 +6,15 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResults = [], checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
         return reject(new Error('putList: Incorrect input!'))
       }
       async function putFile (file, done) {
+        if (putResultsMap.has(file.dst)) {
+          return done()
+        }
         try {
           if (file.size >= bigFile) {
             let multiOptions = {
@@ -27,7 +30,7 @@ class OSSExtra extends OSS {
             const result = await this.multipartUpload(file.dst, file.src, multiOptions)
             checkPointMap.delete(file.dst)
             uploadFilesMap.delete(file.dst)
-            putResults.push(result)
+            putResultsMap.set(file.dst, result)
             if (verbose) {
               console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
             }
@@ -35,7 +38,7 @@ class OSSExtra extends OSS {
           } else {
             const result = await this.put(file.dst, file.src, { timeout: timeout })
             uploadFilesMap.delete(file.dst)
-            putResults.push(result)
+            putResultsMap.set(file.dst, result)
             if (verbose) {
               console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
             }
@@ -51,7 +54,7 @@ class OSSExtra extends OSS {
         if (err) {
           return reject(err)
         }
-        resolve(putResults)
+        resolve([...putResultsMap.values()])
       })
     })
   }
@@ -151,7 +154,7 @@ class OSSExtra extends OSS {
    */
   syncDir (directory, prefix,
     { remove = true, retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
-    { retrying = false, putResults = [], deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
+    { retrying = false, putResultsMap = new Map(), deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
     const options = { remove, retryLimit, thread, timeout, ulimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
@@ -208,7 +211,7 @@ class OSSExtra extends OSS {
         console.log(`Files to upload: ${uploadFilesMap.size}`)
       }
       try {
-        await this.putList([...uploadFilesMap.values()], options, { putResults, checkPointMap, uploadFilesMap })
+        await this.putList([...uploadFilesMap.values()], options, { putResultsMap, checkPointMap, uploadFilesMap })
       } catch (err) {
         // catch the request or response or timeout errors, and re-try
         if (err && err.name === 'ResponseTimeoutError' || err.name === 'ConnectionTimeoutError' || err.name === 'RequestError' || err.name === 'ResponseError' || err.name === 'NoSuchUploadError') {
@@ -219,7 +222,7 @@ class OSSExtra extends OSS {
             err.checkPointMap.delete(err.params.object)
           }
           trial++
-          return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResults, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }))
+          return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResultsMap, checkPointMap: err.checkPointMap, uploadFilesMap, deleteFilesMap }))
         } else {
           return reject(err)
         }
@@ -239,7 +242,7 @@ class OSSExtra extends OSS {
               console.log(`Delete ${err.name}, retrying...`)
             }
             trial++
-            return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResults, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap }))
+            return resolve(this.syncDir(directory, prefix, options, { retrying: true, trial, putResultsMap, deleteResults, checkPointMap, uploadFilesMap, deleteFilesMap }))
           } else {
             return reject(err)
           }
@@ -247,7 +250,7 @@ class OSSExtra extends OSS {
       }
 
       resolve({
-        put: uniqBy(putResults, 'name'),
+        put: uniqBy([...putResultsMap.values()], 'name'),
         delete: uniqBy(deleteResults, 'res.requestUrls[0]')
       })
     })
