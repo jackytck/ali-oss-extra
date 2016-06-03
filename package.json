@@ -1,7 +1,7 @@
 {
   "name": "ali-oss-extra",
-  "version": "0.0.11",
-  "description": "Extend the official ali-oss with more convenient methods, such as listing, syncing a directory, put or delete a list of files etc.",
+  "version": "0.0.12",
+  "description": "Extend the official ali-oss with more convenient methods, such as listing, syncing or deleting a directory, put or delete a list of files etc.",
   "main": "dst/index.js",
   "scripts": {
     "build": "babel src --out-dir dst",
