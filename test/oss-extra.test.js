@@ -188,6 +188,16 @@ describe('Ali-OSS-Extra', () => {
     result.res.status.should.equal(200)
   })
 
+  it('set chinese download name', async () => {
+    const result = await store.setDownloadName(`${testDir}/random.dat`, '荒地_final.zip')
+    result.res.status.should.equal(200)
+  })
+
+  it('set japanese download name', async () => {
+    const result = await store.setDownloadName(`${testDir}/random.dat`, 'こんにちは.dat')
+    result.res.status.should.equal(200)
+  })
+
   it('throw if prefix in deleteDir is not a string', async () => {
     return store.deleteDir({}).should.be.rejectedWith(Error)
   })
