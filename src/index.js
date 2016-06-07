@@ -347,13 +347,13 @@ class OSSExtra extends OSS {
     if (typeof (file) !== 'string' || typeof (downloadName) !== 'string') {
       throw new Error('setDownloadName: Incorrect input!')
     }
-    const headers = {
+    const options = {
       headers: {
         'Content-Type': 'binary/octet-stream',
         'Content-Disposition': `attachment; filename="${encodeURIComponent(downloadName)}"`
       }
     }
-    return await this.copy(file, file, headers)
+    return await this.head(file, options)
   }
 }
 
