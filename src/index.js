@@ -353,7 +353,7 @@ class OSSExtra extends OSS {
         'Content-Disposition': `attachment; filename="${encodeURIComponent(downloadName)}"`
       }
     }
-    return await this.head(file, options)
+    return await this.copy(file, file, options)
   }
 }
 
