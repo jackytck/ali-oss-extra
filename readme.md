@@ -112,6 +112,7 @@ Return:
 
 __Options__
 * `remove` - Remove file on OSS if it is not appeared in local directory
+* `headersMap` - Custom headers for specific files
 * `retryLimit` - Number of times to retry after timeout
 * `thread` - Number of concurrent threads to upload small files
 * `timeout` - Timeout (in milliseconds)
@@ -202,6 +203,7 @@ __fileList__
 
 __Options__
 * `thread` - Number of concurrent threads to upload small files
+* `headersMap` - Custom headers for specific files
 *  `bigFile` - Thresold (in byte) of determining wheather a file is big or small
 * `partSize` - Size  (in byte) of each multipart
 * `timeout` - Timeout (in milliseconds)

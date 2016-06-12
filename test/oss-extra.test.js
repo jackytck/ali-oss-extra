@@ -216,6 +216,37 @@ describe('Ali-OSS-Extra', () => {
     result.length.should.equal(0)
   })
 
+  it('sync a directory with customized headers', async () => {
+    fs.mkdirsSync('./a/b/c/d/')
+    fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
+    fs.writeFileSync('./a/fileA2.txt', 'fileA2 content')
+    fs.writeFileSync('./a/b/c/fileC1.txt', 'fileC1 content')
+    fs.writeFileSync('./a/b/c/fileC2.txt', 'fileC2 content')
+    fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
+    fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
+    fs.writeFileSync('./a/b/c/d/fileD3.dmg', 'fileD3 content')
+    const headersMap = new Map()
+    headersMap.set(`${testDir}/b/c/fileC1.txt`, {
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('BR Ubatuba-SP Área Saco da Riberia.txt')}"`
+    })
+    headersMap.set(`${testDir}/b/c/d/fileD3.dmg`, {
+      'Content-Type': 'binary/octet-stream',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('Estupa.dmg')}"`
+    })
+    await store.syncDir('./a', testDir, { headersMap, verbose: true })
+    const fileC1 = await store.head(`${testDir}/b/c/fileC1.txt`)
+    const fileD3 = await store.head(`${testDir}/b/c/d/fileD3.dmg`)
+
+    fileC1.res.headers['content-type'].should.equal('text/plain')
+    fileC1.res.headers['content-disposition'].should.equal(`attachment; filename="${encodeURIComponent('BR Ubatuba-SP Área Saco da Riberia.txt')}"`)
+    fileD3.res.headers['content-type'].should.equal('binary/octet-stream')
+    fileD3.res.headers['content-disposition'].should.equal(`attachment; filename="${encodeURIComponent('Estupa.dmg')}"`)
+
+    await store.deleteDir(testDir)
+    fs.removeSync('./a')
+  })
+
   describe('timeout tests', () => {
     const dir = `timeout_test_${jobId}`
 

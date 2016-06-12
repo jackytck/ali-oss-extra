@@ -6,7 +6,7 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 10, bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 10, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -16,8 +16,10 @@ class OSSExtra extends OSS {
           return done()
         }
         try {
+          const headers = headersMap.get(file.dst)
           if (file.size >= bigFile) {
             let multiOptions = {
+              headers,
               progress: function * (_, checkPoint) {
                 checkPointMap.set(file.dst, checkPoint)
               }
@@ -36,7 +38,7 @@ class OSSExtra extends OSS {
             }
             done()
           } else {
-            const result = await this.put(file.dst, file.src, { timeout: timeout })
+            const result = await this.put(file.dst, file.src, { headers, timeout })
             uploadFilesMap.delete(file.dst)
             putResultsMap.set(file.dst, result)
             if (verbose) {
@@ -153,9 +155,9 @@ class OSSExtra extends OSS {
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
   syncDir (directory, prefix,
-    { remove = true, retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
+    { remove = true, headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
     { retrying = false, putResultsMap = new Map(), deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
-    const options = { remove, retryLimit, thread, timeout, ulimit, verbose }
+    const options = { remove, headersMap, retryLimit, thread, timeout, ulimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))

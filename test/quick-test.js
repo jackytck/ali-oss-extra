@@ -31,9 +31,23 @@ function onSuccess (name, result) {
 }
 
 console.log('Begin test...')
-var project = process.env.testDir1
+var project = process.env.testDir2
 
-client.syncDir(`${process.env.dataWeb}/${project}`, project, { verbose: true })
+var headersMap = new Map()
+var prefix = `${project}-test`
+headersMap.set(`${prefix}/7fe7985dfb7393e073b46873278ee98e`, {
+  'Content-Type': 'binary/octet-stream',
+  'Content-Disposition': `attachment; filename="${encodeURIComponent('stadium_paid_model.zip')}"`
+})
+headersMap.set(`${prefix}/b822a1236847dc06dfaeedae52538e42`, {
+  'Content-Type': 'binary/octet-stream',
+  'Content-Disposition': `attachment; filename="${encodeURIComponent('stadium_paid_orthomap.tif')}"`
+})
+headersMap.set(`${prefix}/f02b235dc204782ee880c4210ede13ea`, {
+  'Content-Type': 'binary/octet-stream',
+  'Content-Disposition': `attachment; filename="${encodeURIComponent('stadium_paid_dsm.tif')}"`
+})
+client.syncDir(`${process.env.dataWeb2}/${project}`, prefix, { headersMap, verbose: true })
   .then(onSuccess.bind(this, 'syncDir'))
   .catch(onError)
 
