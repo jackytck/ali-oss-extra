@@ -112,6 +112,7 @@ Return:
 
 __Options__
 * `remove` - Remove file on OSS if it is not appeared in local directory
+* `ignoreList` - Array of directories to be ignored (relative path without trailing slash, e.g. [ 'editor', 'cp', 'sfm' ])
 * `headersMap` - Custom headers for specific files
 * `retryLimit` - Number of times to retry after timeout
 * `thread` - Number of concurrent threads to upload small files

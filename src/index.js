@@ -91,7 +91,11 @@ class OSSExtra extends OSS {
   /**
    * Get a map of local files.
    */
-  _getLocalFilesMap (directory, prefix) {
+  _getLocalFilesMap (directory, prefix, ignoreList = []) {
+    function isIgnore (src) {
+      return ignoreList.some(dir => src.startsWith(`${directory}/${dir}/`))
+    }
+
     return new Promise((resolve, reject) => {
       // a. check if directory exists
       if (!isThere(directory)) {
@@ -104,12 +108,14 @@ class OSSExtra extends OSS {
       walker.on('file', (root, stat, next) => {
         const dst = `${prefix}${root.substr(directory.length)}/${stat.name}`
         const src = `${root}/${stat.name}`
-        localFiles.set(dst, {
-          dst,
-          src,
-          mtime: stat.mtime.toISOString(),
-          size: stat.size
-        })
+        if (!isIgnore(src)) {
+          localFiles.set(dst, {
+            dst,
+            src,
+            mtime: stat.mtime.toISOString(),
+            size: stat.size
+          })
+        }
         next()
       })
 
@@ -155,9 +161,9 @@ class OSSExtra extends OSS {
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
   syncDir (directory, prefix,
-    { remove = true, headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
+    { remove = true, ignoreList = [], headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
     { retrying = false, putResultsMap = new Map(), deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
-    const options = { remove, headersMap, retryLimit, thread, timeout, ulimit, verbose }
+    const options = { remove, ignoreList, headersMap, retryLimit, thread, timeout, ulimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))
@@ -175,7 +181,7 @@ class OSSExtra extends OSS {
       // 1. Get local and cloud files, if not retrying
       if (!retrying) {
         try {
-          localFilesMap = await this._getLocalFilesMap(directory, prefix)
+          localFilesMap = await this._getLocalFilesMap(directory, prefix, ignoreList)
           cloudFilesMap = await this._getCloudFilesMap(prefix, options)
           if (verbose) {
             console.log(`Local files: ${localFilesMap.size}`)

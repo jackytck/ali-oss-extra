@@ -247,6 +247,35 @@ describe('Ali-OSS-Extra', () => {
     fs.removeSync('./a')
   })
 
+  it('sync a directory with ignoreList', async () => {
+    fs.mkdirsSync('./a/b/c/d/')
+    fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
+    fs.writeFileSync('./a/fileA2.txt', 'fileA2 content')
+    fs.writeFileSync('./a/b/c/fileC1.txt', 'fileC1 content')
+    fs.writeFileSync('./a/b/c/fileC2.txt', 'fileC2 content')
+    fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
+    fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
+    fs.writeFileSync('./a/b/c/d/fileD3.dmg', 'fileD3 content')
+    fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
+    fs.mkdirsSync('./a/cp')
+    fs.writeFileSync('./a/cp/fileCP1.txt', 'fileCP1 content')
+    fs.writeFileSync('./a/cp/fileCP2.txt', 'fileCP2 content')
+    fs.writeFileSync('./a/cp/fileCP3.txt', 'fileCP3 content')
+    fs.mkdirsSync('./a/sfm')
+    fs.writeFileSync('./a/sfm/fileSFM1.txt', 'fileSFM1 content')
+
+    const ignoreList = [
+      'b/c/d',
+      'cp'
+    ]
+    const result = await store.syncDir('./a', testDir, { ignoreList, verbose: true })
+    result.put.length.should.equal(5)
+    result.delete.length.should.equal(0)
+
+    await store.deleteDir(testDir)
+    fs.removeSync('./a')
+  })
+
   describe('timeout tests', () => {
     const dir = `timeout_test_${jobId}`
 
