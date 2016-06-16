@@ -93,7 +93,7 @@ class OSSExtra extends OSS {
    */
   _getLocalFilesMap (directory, prefix, ignoreList = []) {
     function isIgnore (src) {
-      return ignoreList.some(dir => src.startsWith(`${directory}/${dir}/`))
+      return ignoreList.some(dir => src.startsWith(`${directory}/${dir}/`) || src === `${directory}/${dir}`)
     }
 
     return new Promise((resolve, reject) => {

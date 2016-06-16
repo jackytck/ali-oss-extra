@@ -249,6 +249,8 @@ describe('Ali-OSS-Extra', () => {
 
   it('sync a directory with ignoreList', async () => {
     fs.mkdirsSync('./a/b/c/d/')
+    fs.writeFileSync('./a/top1.txt', 'top1 content')
+    fs.writeFileSync('./a/top2.txt', 'top2 content')
     fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
     fs.writeFileSync('./a/fileA2.txt', 'fileA2 content')
     fs.writeFileSync('./a/b/c/fileC1.txt', 'fileC1 content')
@@ -265,11 +267,12 @@ describe('Ali-OSS-Extra', () => {
     fs.writeFileSync('./a/sfm/fileSFM1.txt', 'fileSFM1 content')
 
     const ignoreList = [
+      'top1.txt',
       'b/c/d',
       'cp'
     ]
     const result = await store.syncDir('./a', testDir, { ignoreList, verbose: true })
-    result.put.length.should.equal(5)
+    result.put.length.should.equal(6)
     result.delete.length.should.equal(0)
 
     await store.deleteDir(testDir)
