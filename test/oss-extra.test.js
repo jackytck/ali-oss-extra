@@ -225,23 +225,40 @@ describe('Ali-OSS-Extra', () => {
     fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
     fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
     fs.writeFileSync('./a/b/c/d/fileD3.dmg', 'fileD3 content')
+    const defaultHeader = {
+      'Cache-Control': 'max-age=123'
+    }
     const headersMap = new Map()
     headersMap.set(`${testDir}/b/c/fileC1.txt`, {
       'Content-Type': 'text/plain',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent('BR Ubatuba-SP Área Saco da Riberia.txt')}"`
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('BR Ubatuba-SP Área Saco da Riberia.txt')}"`,
+      'Cache-Control': 'max-age=0'
     })
     headersMap.set(`${testDir}/b/c/d/fileD3.dmg`, {
       'Content-Type': 'binary/octet-stream',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent('Estupa.dmg')}"`
+      'Content-Disposition': `attachment; filename="${encodeURIComponent('Estupa.dmg')}"`,
+      'Cache-Control': 'max-age=0'
     })
-    await store.syncDir('./a', testDir, { headersMap, verbose: true })
+    await store.syncDir('./a', testDir, { defaultHeader, headersMap, verbose: true })
+    const fileA1 = await store.head(`${testDir}/fileA1.txt`)
+    const fileA2 = await store.head(`${testDir}/fileA2.txt`)
     const fileC1 = await store.head(`${testDir}/b/c/fileC1.txt`)
+    const fileC2 = await store.head(`${testDir}/b/c/fileC2.txt`)
+    const fileD1 = await store.head(`${testDir}/b/c/d/fileD1.txt`)
+    const fileD2 = await store.head(`${testDir}/b/c/d/fileD2.txt`)
     const fileD3 = await store.head(`${testDir}/b/c/d/fileD3.dmg`)
 
+    fileA1.res.headers['cache-control'].should.equal('max-age=123')
+    fileA2.res.headers['cache-control'].should.equal('max-age=123')
     fileC1.res.headers['content-type'].should.equal('text/plain')
     fileC1.res.headers['content-disposition'].should.equal(`attachment; filename="${encodeURIComponent('BR Ubatuba-SP Área Saco da Riberia.txt')}"`)
+    fileC1.res.headers['cache-control'].should.equal('max-age=0')
+    fileC2.res.headers['cache-control'].should.equal('max-age=123')
+    fileD1.res.headers['cache-control'].should.equal('max-age=123')
+    fileD2.res.headers['cache-control'].should.equal('max-age=123')
     fileD3.res.headers['content-type'].should.equal('binary/octet-stream')
     fileD3.res.headers['content-disposition'].should.equal(`attachment; filename="${encodeURIComponent('Estupa.dmg')}"`)
+    fileD3.res.headers['cache-control'].should.equal('max-age=0')
 
     await store.deleteDir(testDir)
     fs.removeSync('./a')

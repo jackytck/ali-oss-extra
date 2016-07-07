@@ -6,7 +6,7 @@ import isThere from 'is-there'
 import moment from 'moment'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 10, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+  putList (fileList, { thread = 10, defaultHeader = {}, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
     return new Promise((resolve, reject) => {
       if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
         return reject(new Error('putList: Incorrect input!'))
@@ -16,7 +16,7 @@ class OSSExtra extends OSS {
           return done()
         }
         try {
-          const headers = headersMap.get(file.dst)
+          const headers = Object.assign({}, defaultHeader, headersMap.get(file.dst))
           if (file.size >= bigFile) {
             let multiOptions = {
               headers,
@@ -161,9 +161,9 @@ class OSSExtra extends OSS {
    * s3 sync ${directory} s3://bucket/${prefix} --delete
    */
   syncDir (directory, prefix,
-    { remove = true, ignoreList = [], headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
+    { remove = true, ignoreList = [], defaultHeader = {}, headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
     { retrying = false, putResultsMap = new Map(), deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
-    const options = { remove, ignoreList, headersMap, retryLimit, thread, timeout, ulimit, verbose }
+    const options = { remove, ignoreList, defaultHeader, headersMap, retryLimit, thread, timeout, ulimit, verbose }
     return new Promise(async (resolve, reject) => {
       if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
         return reject(new Error('syncDir: Incorrect input!'))

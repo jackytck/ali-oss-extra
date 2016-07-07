@@ -113,7 +113,8 @@ Return:
 __Options__
 * `remove` - Remove file on OSS if it is not appeared in local directory
 * `ignoreList` - Array of directories to be ignored (relative path without trailing slash, e.g. [ 'editor', 'cp', 'sfm' ])
-* `headersMap` - Custom headers for specific files
+* `defaultHeader` - Default header for all files
+* `headersMap` - Custom headers (which override default header) for specific files
 * `retryLimit` - Number of times to retry after timeout
 * `thread` - Number of concurrent threads to upload small files
 * `timeout` - Timeout (in milliseconds)
@@ -204,7 +205,8 @@ __fileList__
 
 __Options__
 * `thread` - Number of concurrent threads to upload small files
-* `headersMap` - Custom headers for specific files
+* `defaultHeader` - Default header for all files
+* `headersMap` - Custom headers (which override default header) for specific files
 *  `bigFile` - Thresold (in byte) of determining wheather a file is big or small
 * `partSize` - Size  (in byte) of each multipart
 * `timeout` - Timeout (in milliseconds)
