@@ -20,10 +20,17 @@ function onError (err) {
 
 function onSuccess (name, result) {
   console.log(`Done ${name}`)
-  console.log('Uploaded:', result.put.length)
-  // console.log('Uploaded:', result.put.map(f => f.name))
-  console.log('Removed:', result.delete.length)
-  // console.log('Removed:', result.delete)
+  if (result.put) {
+    console.log('Uploaded:', result.put.length)
+    // console.log('Uploaded:', result.put.map(f => f.name))
+  }
+  if (result.delete) {
+    console.log('Removed:', result.delete.length)
+    // console.log('Removed:', result.delete)
+  }
+  if (result.get) {
+    console.log('Downloaded:', result.get.length)
+  }
   notifier.notify({
     title: 'ali-oss-extra',
     message: `Done ${name}!`
@@ -31,7 +38,7 @@ function onSuccess (name, result) {
 }
 
 console.log('Begin test...')
-var project = process.env.testDir2
+// var project = process.env.testDir2
 
 // var headersMap = new Map()
 // var prefix = `${project}-test`
@@ -48,16 +55,16 @@ var project = process.env.testDir2
 //   'Content-Disposition': `attachment; filename="${encodeURIComponent('stadium_paid_dsm.tif')}"`
 // })
 
-var ignoreList = [
-  'cp',
-  'editor',
-  'sfm',
-  'gcp_runtime'
-]
-
-client.syncDir(`${process.env.dataWeb2}/${project}`, project + '-test', { ignoreList, verbose: true })
-  .then(onSuccess.bind(this, 'syncDir'))
-  .catch(onError)
+// var ignoreList = [
+//   'cp',
+//   'editor',
+//   'sfm',
+//   'gcp_runtime'
+// ]
+//
+// client.syncDir(`${process.env.dataWeb2}/${project}`, project + '-test', { ignoreList, verbose: true })
+//   .then(onSuccess.bind(this, 'syncDir'))
+//   .catch(onError)
 
 // client.deleteDir(process.env.testDir1)
 //   .then(onSuccess.bind(this, 'deleteDir'))
@@ -82,3 +89,8 @@ client.syncDir(`${process.env.dataWeb2}/${project}`, project + '-test', { ignore
 // client.listDir({})
 //   .then(onSuccess.bind(this, 'listDir'))
 //   .catch(onError)
+
+// client.syncDirDown(process.env.ALI_SDK_OSS_TEST_PREFIX, '/tmp/abc', { verbose: true })
+client.syncDirDown('ust-small', '/tmp/abc', { verbose: true })
+  .then(onSuccess.bind(this, 'syncDirDown'))
+  .catch(onError)

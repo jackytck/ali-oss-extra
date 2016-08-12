@@ -4,6 +4,7 @@ import walk from 'walk'
 import Async from 'async'
 import isThere from 'is-there'
 import moment from 'moment'
+import fs from 'fs-extra-promise'
 
 class OSSExtra extends OSS {
   putList (fileList, { thread = 10, defaultHeader = {}, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
@@ -261,6 +262,106 @@ class OSSExtra extends OSS {
         put: uniqBy([...putResultsMap.values()], 'name'),
         delete: uniqBy(deleteResults, 'res.requestUrls[0]')
       })
+    })
+  }
+
+  /**
+   * Recursively download from the prefix and store all files in a local directory.
+   */
+  syncDirDown (prefix, directory,
+    { remove = true, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}
+  ) {
+    const options = { remove, thread, timeout, ulimit, verbose }
+    let localFilesMap = new Map()
+    let cloudFilesMap = new Map()
+    let downloadFilesMap = new Map()
+    let deleteFilesMap = new Map()
+
+    async function getFile (file, done) {
+      const localFilePath = `${directory}${file.name.substr(prefix.length)}`
+      try {
+        await fs.ensureFileAsync(localFilePath)
+        await this.get(file.name, localFilePath)
+        if (verbose) {
+          downloadFilesMap.delete(file.name)
+          console.log(`Downloaded: ${localFilePath}, Remaining: ${downloadFilesMap.size}`)
+        }
+        done(null, file.name)
+      } catch (err) {
+        done(err)
+      }
+    }
+
+    async function deleteFile (file, done) {
+      try {
+        await fs.removeAsync(file.src)
+        if (verbose) {
+          deleteFilesMap.delete(file.dst)
+          console.log(`Deleted: ${file.src}, Remaining: ${deleteFilesMap.size}`)
+        }
+        done(null, file.src)
+      } catch (err) {
+        done(err)
+      }
+    }
+
+    return new Promise(async (resolve, reject) => {
+      if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
+        return reject(new Error('syncDirDown: Incorrect input!'))
+      }
+      try {
+        // 1. Get local and cloud files
+        cloudFilesMap = await this._getCloudFilesMap(prefix, options)
+        await fs.ensureDirAsync(directory)
+        localFilesMap = await this._getLocalFilesMap(directory, prefix)
+
+        // 2. Prepare a list of cloud files to download
+        for (let f of cloudFilesMap.values()) {
+          const existed = localFilesMap.get(f.name)
+          if (existed) {
+            if (moment(f.lastModified).isAfter(moment(existed.mtime).add(1, 's'))) {
+              downloadFilesMap.set(f.name, f)
+            }
+          } else {
+            downloadFilesMap.set(f.name, f)
+          }
+        }
+
+        // 3. Prepare a list of local files to remove
+        if (remove) {
+          for (let f of localFilesMap.values()) {
+            const existed = cloudFilesMap.get(f.dst)
+            if (!existed) {
+              deleteFilesMap.set(f.dst, f)
+            }
+          }
+        }
+
+        const downloadFiles = sortBy([...downloadFilesMap.values()], 'name')
+        Async.mapLimit(downloadFiles, thread, getFile.bind(this), (err, getResults) => {
+          if (err) {
+            return reject(err)
+          }
+
+          if (remove) {
+            Async.mapLimit(deleteFilesMap.values(), thread, deleteFile.bind(this), (err, deleteResults) => {
+              if (err) {
+                return reject(err)
+              }
+              return resolve({
+                get: getResults,
+                delete: deleteResults
+              })
+            })
+          } else {
+            return resolve({
+              get: getResults
+            })
+          }
+        })
+      } catch (err) {
+        return reject(err)
+      }
     })
   }
 
