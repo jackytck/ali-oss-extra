@@ -296,6 +296,39 @@ describe('Ali-OSS-Extra', () => {
     fs.removeSync('./a')
   })
 
+  it('sync a directory downwards', async () => {
+    fs.mkdirsSync('./a/b/c/d/')
+    fs.writeFileSync('./a/fileA1.txt', 'fileA1 content')
+    fs.writeFileSync('./a/fileA2.txt', 'fileA2 content')
+    fs.writeFileSync('./a/b/c/fileC1.txt', 'fileC1 content')
+    fs.writeFileSync('./a/b/c/fileC2.txt', 'fileC2 content')
+    fs.writeFileSync('./a/b/c/d/fileD1.txt', 'fileD1 content')
+    fs.writeFileSync('./a/b/c/d/fileD2.txt', 'fileD2 content')
+    fs.writeFileSync('./a/b/c/d/fileD3.txt', 'fileD3 content')
+    const upResult = await store.syncDir('./a', testDir, { verbose: true })
+    upResult.put.length.should.equal(7)
+
+    const downResult = await store.syncDirDown(testDir, './download/abc', { verbose: true })
+    downResult.get.length.should.equal(7)
+
+    const localFilesMap = await store._getLocalFilesMap('./download/abc', testDir)
+    upResult.put.forEach(f => {
+      localFilesMap.get(f.name).should.be.instanceof(Object)
+    })
+
+    await store.deleteDir(testDir)
+    fs.removeSync('./a')
+    fs.removeSync('./download')
+  })
+
+  it('throw if prefix in syncDirDown is not a string', async () => {
+    return store.syncDirDown({}, testDir).should.be.rejectedWith(Error)
+  })
+
+  it('throw if directory in syncDirDown is not a string', async () => {
+    return store.syncDirDown(testDir, {}).should.be.rejectedWith(Error)
+  })
+
   describe('timeout tests', () => {
     const dir = `timeout_test_${jobId}`
 
