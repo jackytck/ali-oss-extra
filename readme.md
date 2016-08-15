@@ -31,6 +31,7 @@ npm install -S ali-oss-extra
 
 * [`listDir`](#listDir)
 * [`syncDir`](#syncDir)
+* [`syncDirDown`](#syncDirDown)
 * [`deleteDir`](#deleteDir)
 * [`putList`](#putList)
 * [`deleteList`](#deleteList)
@@ -160,6 +161,42 @@ Return:
         ]
       }
     },
+    ...
+  ],
+  "delete": []
+}
+```
+
+---------------------------------------
+
+<a name="syncDirDown"></a>
+### syncDirDown (prefix, directory, options)
+
+__Options__
+* `remove` - Remove any local file if it does not exist in the OSS
+* `thread` - Number of concurrent threads to download files
+* `timeout` - Timeout (in milliseconds)
+* `ulimit` - Maximum number of open files
+* `verbose` - Print debug log
+
+Synchronize from a OSS prefix to a local directory recursively.
+
+If a local file of the same name exists and its last modified time is older than the OSS one, then it will not be downloaded.
+```js
+const result = await store.syncDirDown('a_dir', './localDir')
+```
+Return:
+```js
+{
+  "get": [
+    'localDir/DJI_0081.JPG',
+    'localDir/DJI_0082.JPG',
+    'localDir/DJI_0083.JPG',
+    'localDir/DJI_0084.JPG',
+    'localDir/DJI_0085.JPG',
+    'localDir/DJI_0086.JPG',
+    'localDir/DJI_0087.JPG',
+    'localDir/DJI_0088.JPG',
     ...
   ],
   "delete": []
