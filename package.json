@@ -50,7 +50,7 @@
     "mocha-lcov-reporter": "^1.2.0",
     "node-notifier": "^4.5.0",
     "standard": "^8.0.0",
-    "watch": "^1.0.0"
+    "watch": "^1.0.1"
   },
   "dependencies": {
     "ali-oss": "^4.4.4",
