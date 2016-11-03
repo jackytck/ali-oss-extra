@@ -41,8 +41,5 @@ build
 # Babel build
 dst
 
-# yarn
-yarn.lock
-
 # Mac
 .DS_Store

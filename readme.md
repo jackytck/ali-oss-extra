@@ -26,6 +26,10 @@
 ```bash
 npm install -S ali-oss-extra
 ```
+or
+```bash
+yarn add ali-oss-extra
+```
 
 ### Extra methods
 

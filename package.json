@@ -44,7 +44,6 @@
     "chai-things": "^0.2.0",
     "coveralls": "^2.11.9",
     "dotenv": "^2.0.0",
-    "fs-extra": "^0.30.0",
     "istanbul": "1.0.0-alpha.2",
     "mocha": "^3.0.0",
     "mocha-lcov-reporter": "^1.2.0",
