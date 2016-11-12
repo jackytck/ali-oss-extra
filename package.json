@@ -58,7 +58,7 @@
     "fs-extra-promise": "^0.4.0",
     "is-there": "^4.3.2",
     "lodash": "^4.16.6",
-    "moment": "^2.14.0",
+    "moment": "^2.16.0",
     "walk": "^2.3.9"
   }
 }
