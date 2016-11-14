@@ -186,7 +186,9 @@ class OSSExtra extends OSS {
           cloudFilesMap = await this._getCloudFilesMap(prefix, options)
           if (verbose) {
             console.log(`Local files: ${localFilesMap.size}`)
+            console.log(localFilesMap)
             console.log(`Cloud files: ${cloudFilesMap.size}`)
+            console.log(cloudFilesMap)
           }
         } catch (err) {
           return reject(err)
