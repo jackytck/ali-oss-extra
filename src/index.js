@@ -186,9 +186,7 @@ class OSSExtra extends OSS {
           cloudFilesMap = await this._getCloudFilesMap(prefix, options)
           if (verbose) {
             console.log(`Local files: ${localFilesMap.size}`)
-            console.log(localFilesMap)
             console.log(`Cloud files: ${cloudFilesMap.size}`)
-            console.log(cloudFilesMap)
           }
         } catch (err) {
           return reject(err)
@@ -198,7 +196,9 @@ class OSSExtra extends OSS {
         for (let f of localFilesMap.values()) {
           const existed = cloudFilesMap.get(f.dst)
           if (existed) {
-            if (moment(f.mtime).isAfter(moment(existed.lastModified).add(1, 's'))) {
+            // sometimes, clocks in oss servers are 2s slower,
+            // adding the round off error, so 3s is needed
+            if (moment(f.mtime).isAfter(moment(existed.lastModified).add(3, 's'))) {
               uploadFilesMap.set(f.dst, f)
             }
           } else {
