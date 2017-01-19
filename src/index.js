@@ -197,8 +197,8 @@ class OSSExtra extends OSS {
           const existed = cloudFilesMap.get(f.dst)
           if (existed) {
             // sometimes, clocks in oss servers are 2s slower,
-            // adding the round off error, so 3s is needed
-            if (moment(f.mtime).isAfter(moment(existed.lastModified).add(3, 's'))) {
+            // adding the round off error, so about 5s is needed
+            if (moment(f.mtime).isAfter(moment(existed.lastModified).add(5, 's'))) {
               uploadFilesMap.set(f.dst, f)
             }
           } else {
