@@ -1,11 +1,11 @@
+import OSS from '..'
 /* global describe, it */
 import chai from 'chai'
-import OSS from '..'
-import config from './config'
-import chaiThings from 'chai-things'
-import fs from 'fs-extra'
-import crypto from 'crypto'
 import chaiAsPromised from 'chai-as-promised'
+import chaiThings from 'chai-things'
+import config from './config'
+import crypto from 'crypto'
+import fs from 'fs-extra'
 
 chai.should()
 chai.use(chaiThings)
@@ -348,8 +348,8 @@ describe('Ali-OSS-Extra', () => {
       const buffer = crypto.randomBytes(100000000)
       fs.writeFileSync(`./${dir}/random2.dat`, buffer)
       const localFilesMap = await store5s._getLocalFilesMap(`./${dir}`, dir)
-      let uploadFilesMap = new Map()
-      for (let f of localFilesMap.values()) {
+      const uploadFilesMap = new Map()
+      for (const f of localFilesMap.values()) {
         uploadFilesMap.set(f.dst, f)
       }
       return store20ms.syncDir(`./${dir}`, dir, { retryLimit: 3, verbose: true }, { retrying: true, uploadFilesMap, trial: 1 }).should.be.rejectedWith(Error)
@@ -357,8 +357,8 @@ describe('Ali-OSS-Extra', () => {
 
     it('throw retry limit exceeded in syncDir: delete', async () => {
       const cloudFilesMap = await store5s._getCloudFilesMap(dir)
-      let deleteFilesMap = new Map()
-      for (let f of cloudFilesMap.values()) {
+      const deleteFilesMap = new Map()
+      for (const f of cloudFilesMap.values()) {
         deleteFilesMap.set(f.name, f)
       }
       return store20ms.syncDir(`./${dir}`, dir, { retryLimit: 3, verbose: true }, { retrying: true, deleteFilesMap, trial: 1 }).should.be.rejectedWith(Error)
