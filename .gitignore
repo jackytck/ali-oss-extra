@@ -43,3 +43,6 @@ dst
 
 # Mac
 .DS_Store
+
+# test files
+timeout_test_*

@@ -1,8 +1,8 @@
 sudo: false
 language: node_js
 node_js:
-- '6'
-- '5'
+- '11'
+- '10'
 install:
 - npm install --dev
 script:
