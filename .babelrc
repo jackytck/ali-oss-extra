@@ -1,15 +1,12 @@
 {
   "presets": [
-    "@babel/preset-env"
-  ],
-  "plugins": [
     [
-      "@babel/plugin-transform-runtime",
+      "@babel/preset-env",
       {
-        "corejs": 2,
-        "regenerator": true
+        "targets": {
+          "node": "10"
+        }
       }
-    ],
-    "syntax-async-functions"
+    ]
   ]
 }
