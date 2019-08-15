@@ -8,92 +8,73 @@ import moment from 'moment'
 import walk from 'walk'
 
 class OSSExtra extends OSS {
-  putList (fileList, { thread = 10, defaultHeader = {}, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
-    return new Promise((resolve, reject) => {
-      if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
-        return reject(new Error('putList: Incorrect input!'))
+  async putList (fileList, { thread = 10, defaultHeader = {}, headersMap = new Map(), bigFile = 1024 * 500, partSize = 1024 * 500, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {}, { putResultsMap = new Map(), checkPointMap = new Map(), uploadFilesMap = new Map() } = {}) {
+    if (fileList.some(f => typeof (f) !== 'object' || !f.src || !f.dst || typeof (f.src) !== 'string' || typeof (f.dst) !== 'string' || typeof (f.size) !== 'number')) {
+      throw new Error('putList: Incorrect input!')
+    }
+    async function putFile (file) {
+      if (putResultsMap.has(file.dst)) {
+        return
       }
-      async function putFile (file, done) {
-        if (putResultsMap.has(file.dst)) {
-          return done()
-        }
-        try {
-          const headers = Object.assign({}, defaultHeader, headersMap.get(file.dst))
-          if (file.size >= bigFile) {
-            const multiOptions = {
-              headers,
-              progress: function * (_, checkPoint) {
-                checkPointMap.set(file.dst, checkPoint)
-              }
+      try {
+        const headers = Object.assign({}, defaultHeader, headersMap.get(file.dst))
+        if (file.size >= bigFile) {
+          const multiOptions = {
+            headers,
+            progress: function * (_, checkPoint) {
+              checkPointMap.set(file.dst, checkPoint)
             }
-            if (checkPointMap.has(file.dst)) {
-              multiOptions.checkpoint = cloneDeep(checkPointMap.get(file.dst))
-            } else {
-              multiOptions.partSize = Math.max(Math.ceil(file.size / ulimit), partSize)
-            }
-            const result = await this.multipartUpload(file.dst, file.src, multiOptions)
-            checkPointMap.delete(file.dst)
-            uploadFilesMap.delete(file.dst)
-            putResultsMap.set(file.dst, result)
-            if (verbose) {
-              console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
-            }
-            done()
-          } else {
-            const result = await this.put(file.dst, file.src, { headers, timeout })
-            uploadFilesMap.delete(file.dst)
-            putResultsMap.set(file.dst, result)
-            if (verbose) {
-              console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
-            }
-            done()
           }
-        } catch (err) {
-          err.checkPointMap = checkPointMap
-          done(err)
+          if (checkPointMap.has(file.dst)) {
+            multiOptions.checkpoint = cloneDeep(checkPointMap.get(file.dst))
+          } else {
+            multiOptions.partSize = Math.max(Math.ceil(file.size / ulimit), partSize)
+          }
+          const result = await this.multipartUpload(file.dst, file.src, multiOptions)
+          checkPointMap.delete(file.dst)
+          uploadFilesMap.delete(file.dst)
+          putResultsMap.set(file.dst, result)
+          if (verbose) {
+            console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
+          }
+        } else {
+          const result = await this.put(file.dst, file.src, { headers, timeout })
+          uploadFilesMap.delete(file.dst)
+          putResultsMap.set(file.dst, result)
+          if (verbose) {
+            console.log(`Uploaded: ${file.dst}, Remaining: ${uploadFilesMap.size}`)
+          }
         }
+      } catch (err) {
+        err.checkPointMap = checkPointMap
+        throw err
       }
-      fileList = sortBy(fileList, 'size')
-      Async.mapLimit(fileList, thread, putFile.bind(this), (err, results) => {
-        if (err) {
-          return reject(err)
-        }
-        resolve([...putResultsMap.values()])
-      })
-    })
+    }
+    fileList = sortBy(fileList, 'size')
+    await Async.mapLimit(fileList, thread, putFile.bind(this))
+    return [...putResultsMap.values()]
   }
 
-  deleteList (fileList, { thread = 20, verbose = false } = {}, { deleteResults = [], deleteFilesMap = new Map() } = {}) {
-    return new Promise((resolve, reject) => {
-      if (fileList.some(f => typeof (f) !== 'object' || !f.name || typeof (f.name) !== 'string')) {
-        return reject(new Error('deleteList: Incorrect input!'))
+  async deleteList (fileList, { thread = 20, verbose = false } = {}, { deleteResults = [], deleteFilesMap = new Map() } = {}) {
+    if (fileList.some(f => typeof (f) !== 'object' || !f.name || typeof (f.name) !== 'string')) {
+      throw new Error('deleteList: Incorrect input!')
+    }
+    async function deleteFile (file) {
+      const result = await this.delete(file.name)
+      deleteFilesMap.delete(file.name)
+      deleteResults.push(result)
+      if (verbose) {
+        console.log(`Deleted: ${file.name}, Remaining: ${deleteFilesMap.size}`)
       }
-      async function deleteFile (file, done) {
-        try {
-          const result = await this.delete(file.name)
-          deleteFilesMap.delete(file.name)
-          deleteResults.push(result)
-          if (verbose) {
-            console.log(`Deleted: ${file.name}, Remaining: ${deleteFilesMap.size}`)
-          }
-          done()
-        } catch (err) {
-          done(err)
-        }
-      }
-      Async.mapLimit(fileList, thread, deleteFile.bind(this), (err, results) => {
-        if (err) {
-          return reject(err)
-        }
-        resolve(deleteResults)
-      })
-    })
+    }
+    await Async.mapLimit(fileList, thread, deleteFile.bind(this))
+    return deleteResults
   }
 
   /**
    * Get a map of local files.
    */
-  _getLocalFilesMap (directory, prefix, ignoreList = []) {
+  async _getLocalFilesMap (directory, prefix, ignoreList = []) {
     function isIgnore (src) {
       return ignoreList.some(dir => src.startsWith(`${directory}/${dir}/`) || src === `${directory}/${dir}`)
     }
@@ -163,9 +144,7 @@ class OSSExtra extends OSS {
     { remove = true, ignoreList = [], defaultHeader = {}, headersMap = new Map(), retryLimit = null, thread = 10, timeout = 120 * 1000, ulimit = 1024, verbose = false } = {},
     { retrying = false, putResultsMap = new Map(), deleteResults = [], checkPointMap = new Map(), uploadFilesMap = new Map(), deleteFilesMap = new Map(), trial = 0 } = {}) {
     const options = { remove, ignoreList, defaultHeader, headersMap, retryLimit, thread, timeout, ulimit, verbose }
-    // return new Promise(async (resolve, reject) => {
     if (typeof (directory) !== 'string' || typeof (prefix) !== 'string') {
-      // return reject(new Error('syncDir: Incorrect input!'))
       throw new Error('syncDir: Incorrect input!')
     }
     if (retryLimit && Number.isInteger(retryLimit) && trial > retryLimit) {
@@ -273,19 +252,15 @@ class OSSExtra extends OSS {
     const downloadFilesMap = new Map()
     const deleteFilesMap = new Map()
 
-    async function getFile (file, done) {
+    async function getFile (file) {
       const localFilePath = `${directory}${file.name.substr(prefix.length)}`
-      try {
-        await fs.ensureFileAsync(localFilePath)
-        await this.get(file.name, localFilePath)
-        if (verbose) {
-          downloadFilesMap.delete(file.name)
-          console.log(`Downloaded: ${localFilePath}, Remaining: ${downloadFilesMap.size}`)
-        }
-        done(null, file.name)
-      } catch (err) {
-        done(err)
+      await fs.ensureFileAsync(localFilePath)
+      await this.get(file.name, localFilePath)
+      if (verbose) {
+        downloadFilesMap.delete(file.name)
+        console.log(`Downloaded: ${localFilePath}, Remaining: ${downloadFilesMap.size}`)
       }
+      return file.name
     }
 
     async function deleteFile (file, done) {
@@ -382,7 +357,6 @@ class OSSExtra extends OSS {
    * Delete a directory on OSS recursively.
    */
   async deleteDir (prefix, { retryLimit = null } = {}, meta = {}) {
-    // return new Promise(async (resolve, reject) => {
     if (typeof (prefix) !== 'string') {
       throw new Error('deleteDir: Incorrect input!')
     }
